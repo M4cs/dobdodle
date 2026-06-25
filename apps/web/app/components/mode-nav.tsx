@@ -14,6 +14,7 @@ export function ModeNav() {
         <NavLink
           key={m.to}
           to={m.to}
+          viewTransition
           className={({ isActive }) =>
             cn(
               "rounded-md px-2.5 py-1 text-sm font-medium transition-colors",

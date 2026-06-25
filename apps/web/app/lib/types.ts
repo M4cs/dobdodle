@@ -12,6 +12,8 @@ export interface Place {
   name: string
   lat: number
   lon: number
+  region?: string // state/province/county (Wikidata P131)
+  country?: string // Wikidata P17
 }
 
 export interface Person {
@@ -41,6 +43,8 @@ export interface NamedPoint {
   lat: number
   lon: number
   name: string
+  region?: string
+  country?: string
 }
 
 /** A puzzle as seen by the client: markers + dates, never the identity. */

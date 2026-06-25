@@ -208,19 +208,53 @@ interface Place {
   name: string
   lat: number
   lon: number
+  region?: string // admin area (state/province/county), P131
+  country?: string // P17
+}
+
+// Original-case English labels for a set of QIDs.
+async function fetchLabelMap(qids: string[]): Promise<Map<string, string>> {
+  const out = new Map<string, string>()
+  const ents = await fetchEntities(qids)
+  for (const [qid, e] of ents) {
+    const l = e.labels?.en?.value
+    if (l) out.set(qid, l)
+  }
+  return out
 }
 
 async function fetchPlaces(qids: string[]): Promise<Map<string, Place>> {
-  const out = new Map<string, Place>()
   const ents = await fetchEntities(qids)
+  const adminQids = new Set<string>()
+  const staged = new Map<
+    string,
+    { place: Place; countryQid?: string; regionQid?: string }
+  >()
   for (const [qid, e] of ents) {
     const coord = mainValues(e.claims ?? {}, "P625")[0]
     if (!coord || coord.globe !== "http://www.wikidata.org/entity/Q2") continue
-    out.set(qid, {
-      name: e.labels?.en?.value ?? qid,
-      lat: round(coord.latitude),
-      lon: round(coord.longitude),
+    const countryQid = mainValues(e.claims ?? {}, "P17")[0]?.id
+    const regionQid = mainValues(e.claims ?? {}, "P131")[0]?.id
+    if (countryQid) adminQids.add(countryQid)
+    if (regionQid) adminQids.add(regionQid)
+    staged.set(qid, {
+      place: {
+        name: e.labels?.en?.value ?? qid,
+        lat: round(coord.latitude),
+        lon: round(coord.longitude),
+      },
+      countryQid,
+      regionQid,
     })
+  }
+  const labels = await fetchLabelMap([...adminQids])
+  const out = new Map<string, Place>()
+  for (const [qid, { place, countryQid, regionQid }] of staged) {
+    const country = countryQid ? labels.get(countryQid) : undefined
+    let region = regionQid ? labels.get(regionQid) : undefined
+    // Drop a region that just repeats the city or country.
+    if (region && (region === place.name || region === country)) region = undefined
+    out.set(qid, { ...place, region, country })
   }
   return out
 }

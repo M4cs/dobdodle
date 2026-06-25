@@ -6,7 +6,7 @@ import { cn } from "@workspace/ui/lib/utils"
 export function GuessRow({ g }: { g: GuessFeedback }) {
   if (g.correct) {
     return (
-      <div className="flex items-center gap-3 rounded-xl border border-success/40 bg-success/10 px-4 py-3">
+      <div className="flex items-center gap-3 rounded-xl border border-success/40 bg-success/10 px-4 py-3 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-1 motion-safe:duration-300">
         <span className="text-xl leading-none">🎯</span>
         <span className="flex-1 truncate text-base font-semibold">{g.name}</span>
         <span className="text-base font-semibold text-success">Correct!</span>
@@ -14,7 +14,7 @@ export function GuessRow({ g }: { g: GuessFeedback }) {
     )
   }
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-xl border border-border bg-card px-4 py-3">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-xl border border-border bg-card px-4 py-3 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-1 motion-safe:duration-300">
       <span className="min-w-0 flex-1 truncate text-base font-medium">{g.name}</span>
       <div className="flex items-center gap-3 text-base tabular-nums">
         <span

@@ -8,6 +8,7 @@ import { GuessSearch } from "./guess-search"
 import { WorldMap, type MapPoint } from "./world-map"
 import { formatGameDate } from "../lib/dates"
 import { formatDistance, haversine } from "../lib/geo"
+import { placeContext, placeLabel } from "../lib/place"
 import type { NameEntry, PublicPuzzle } from "../lib/types"
 
 interface PuzzleBoardProps {
@@ -45,6 +46,7 @@ export function PuzzleBoard({
         heading: "Born & died here",
         lines: [
           samePlace ? b.name : `${b.name} → ${d.name}`,
+          placeContext(b),
           `Born ${puzzle.dobDisplay}`,
           puzzle.dodDisplay ? `Died ${puzzle.dodDisplay}` : "",
         ].filter(Boolean),
@@ -57,7 +59,7 @@ export function PuzzleBoard({
         lon: b.lon,
         pulse: true,
         heading: "Place of birth",
-        lines: [b.name, `Born ${puzzle.dobDisplay}`],
+        lines: [b.name, placeContext(b), `Born ${puzzle.dobDisplay}`].filter(Boolean),
       })
       if (d) {
         pts.push({
@@ -67,9 +69,11 @@ export function PuzzleBoard({
           lon: d.lon,
           pulse: true,
           heading: "Place of death",
-          lines: [d.name, puzzle.dodDisplay ? `Died ${puzzle.dodDisplay}` : ""].filter(
-            Boolean
-          ),
+          lines: [
+            d.name,
+            placeContext(d),
+            puzzle.dodDisplay ? `Died ${puzzle.dodDisplay}` : "",
+          ].filter(Boolean),
         })
       }
     }
@@ -83,8 +87,9 @@ export function PuzzleBoard({
         heading: g.name,
         lines: [
           `Born in ${g.birth.name}`,
+          placeContext(g.birth),
           g.correct ? "Correct!" : `${formatDistance(g.distanceKm)} from the answer`,
-        ],
+        ].filter(Boolean),
       })
     )
     return pts
@@ -98,28 +103,25 @@ export function PuzzleBoard({
 
   return (
     <div className="flex flex-col gap-5">
+      <div className="grid grid-cols-2 gap-3">
+        <DateStat
+          tone="born"
+          label="Born"
+          date={puzzle.dobDisplay}
+          place={placeLabel(puzzle.birth)}
+        />
+        {puzzle.death && puzzle.dodDisplay && (
+          <DateStat
+            tone="died"
+            label="Died"
+            date={puzzle.dodDisplay}
+            place={placeLabel(puzzle.death)}
+          />
+        )}
+      </div>
+
       <div className="overflow-hidden rounded-2xl border border-border shadow-sm">
-        <div className="relative">
-          <WorldMap points={points} connect />
-          <div className="pointer-events-none absolute top-3 left-3 flex flex-wrap gap-2">
-            <Badge
-              variant="outline"
-              className="pointer-events-auto gap-1.5 bg-card/90 px-2.5 py-1 text-sm backdrop-blur"
-            >
-              <span className="size-2.5 rounded-full bg-born" />
-              Born {puzzle.dobDisplay}
-            </Badge>
-            {puzzle.dodDisplay && (
-              <Badge
-                variant="outline"
-                className="pointer-events-auto gap-1.5 bg-card/90 px-2.5 py-1 text-sm backdrop-blur"
-              >
-                <span className="size-2.5 rounded-full bg-died" />
-                Died {puzzle.dodDisplay}
-              </Badge>
-            )}
-          </div>
-        </div>
+        <WorldMap points={points} connect />
         {!puzzle.finished && (
           <p className="border-t border-border bg-card px-3 py-2 text-center text-xs text-muted-foreground">
             Drag to pan · scroll or pinch to zoom · tap a marker for details
@@ -162,6 +164,35 @@ export function PuzzleBoard({
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+function DateStat({
+  tone,
+  label,
+  date,
+  place,
+}: {
+  tone: "born" | "died"
+  label: string
+  date: string
+  place: string
+}) {
+  return (
+    <div className="rounded-xl border border-border bg-card p-4">
+      <div className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+        <span
+          className={cn("size-2 rounded-full", tone === "born" ? "bg-born" : "bg-died")}
+        />
+        {label}
+      </div>
+      <div className="mt-1.5 font-heading text-xl leading-tight font-bold sm:text-2xl">
+        {date}
+      </div>
+      <div className="mt-1 truncate text-sm text-muted-foreground" title={place}>
+        {place}
+      </div>
     </div>
   )
 }
@@ -219,7 +250,7 @@ function Reveal({ puzzle }: { puzzle: PublicPuzzle }) {
   return (
     <div
       className={cn(
-        "flex gap-4 rounded-xl border p-4",
+        "flex gap-4 rounded-xl border p-4 motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 motion-safe:duration-500",
         puzzle.solved
           ? "border-success/40 bg-success/5"
           : "border-border bg-muted/40"
@@ -251,14 +282,18 @@ function Reveal({ puzzle }: { puzzle: PublicPuzzle }) {
           <p className="text-sm text-muted-foreground">{r.description}</p>
         )}
         <div className="mt-2 flex flex-col gap-1 text-sm">
-          <span className="flex items-center gap-2">
-            <Sprout className="size-3.5 text-born" />
-            {formatGameDate(r.dob)} · {r.birth.name}
+          <span className="flex items-start gap-2">
+            <Sprout className="mt-0.5 size-3.5 shrink-0 text-born" />
+            <span>
+              {formatGameDate(r.dob)} · {placeLabel(r.birth)}
+            </span>
           </span>
           {r.dod && r.death && (
-            <span className="flex items-center gap-2">
-              <Skull className="size-3.5 text-died" />
-              {formatGameDate(r.dod)} · {r.death.name}
+            <span className="flex items-start gap-2">
+              <Skull className="mt-0.5 size-3.5 shrink-0 text-died" />
+              <span>
+                {formatGameDate(r.dod)} · {placeLabel(r.death)}
+              </span>
             </span>
           )}
         </div>

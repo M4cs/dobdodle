@@ -85,6 +85,7 @@ export function CategoryBar({
           <Link
             key={cat}
             to={hrefFor(cat)}
+            viewTransition
             draggable={false}
             onClick={(e) => {
               // suppress navigation if this was a drag, not a tap

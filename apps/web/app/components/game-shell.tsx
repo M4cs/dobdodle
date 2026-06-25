@@ -1,3 +1,4 @@
+import { cn } from "@workspace/ui/lib/utils"
 import { CategoryBar } from "./category-bar"
 import { ModeNav } from "./mode-nav"
 import { SiteHeader } from "./site-header"
@@ -34,7 +35,14 @@ export function GameShell({
         {!hideCategories && (
           <CategoryBar categories={data.categories} active={data.category} />
         )}
-        <div className={hideCategories ? "" : "mt-6"}>{children}</div>
+        <div
+          className={cn(
+            "motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-500",
+            hideCategories ? "" : "mt-6"
+          )}
+        >
+          {children}
+        </div>
       </main>
     </div>
   )

@@ -170,6 +170,8 @@ function evaluateGuess(answer: Person, guess: Person): GuessFeedback {
       lat: guess.birth.lat,
       lon: guess.birth.lon,
       name: guess.birth.name,
+      region: guess.birth.region,
+      country: guess.birth.country,
     },
     yearDelta: Math.abs(guess.dob.year - answer.dob.year),
     yearHint:
@@ -246,9 +248,17 @@ export function buildPuzzle(t: TokenData, guessedIds: string[]): PublicPuzzle {
       lat: answer.birth.lat,
       lon: answer.birth.lon,
       name: answer.birth.name,
+      region: answer.birth.region,
+      country: answer.birth.country,
     },
     death: answer.death
-      ? { lat: answer.death.lat, lon: answer.death.lon, name: answer.death.name }
+      ? {
+          lat: answer.death.lat,
+          lon: answer.death.lon,
+          name: answer.death.name,
+          region: answer.death.region,
+          country: answer.death.country,
+        }
       : null,
     alive: answer.alive,
     dobDisplay: formatGameDate(answer.dob),

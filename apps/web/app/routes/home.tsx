@@ -49,7 +49,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
     <div className="min-h-svh">
       <SiteHeader />
       <main className="mx-auto max-w-3xl px-4 pb-20">
-        <section className="relative mt-8 overflow-hidden rounded-2xl border border-border bg-card">
+        <section className="relative mt-8 overflow-hidden rounded-2xl border border-border bg-card motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-3 motion-safe:duration-700">
           <div className="absolute inset-0 opacity-30">
             <WorldMap
               className="h-full w-full"
@@ -73,12 +73,12 @@ export default function Home({ loaderData }: Route.ComponentProps) {
             </p>
             <div className="mt-7 flex justify-center gap-2">
               <Button asChild size="lg">
-                <Link to="/daily">
+                <Link to="/daily" viewTransition>
                   <CalendarDays /> Play today’s puzzle
                 </Link>
               </Button>
               <Button asChild size="lg" variant="outline">
-                <Link to="/rapid">
+                <Link to="/rapid" viewTransition>
                   <Zap /> Rapid fire
                 </Link>
               </Button>
@@ -86,12 +86,13 @@ export default function Home({ loaderData }: Route.ComponentProps) {
           </div>
         </section>
 
-        <section className="mt-6 grid gap-3 sm:grid-cols-3">
+        <section className="mt-6 grid gap-3 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-3 motion-safe:delay-150 motion-safe:duration-700 sm:grid-cols-3">
           {MODES.map((m) => (
             <Link
               key={m.to}
               to={m.to}
-              className="group flex flex-col gap-2 rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary/40 hover:bg-muted/40"
+              viewTransition
+              className="group flex flex-col gap-2 rounded-xl border border-border bg-card p-5 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:bg-muted/40 hover:shadow-md"
             >
               <span className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <m.icon className="size-5" />
@@ -102,7 +103,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
           ))}
         </section>
 
-        <section className="mt-8">
+        <section className="mt-8 motion-safe:animate-in motion-safe:fade-in motion-safe:delay-300 motion-safe:duration-700">
           <h2 className="mb-3 text-sm font-medium text-muted-foreground">
             Or pick a category
           </h2>
@@ -111,6 +112,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
               <Link
                 key={cat}
                 to={`/daily?cat=${encodeURIComponent(cat)}`}
+                viewTransition
                 className="flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
               >
                 <span>{CATEGORY_ICONS[cat] ?? "•"}</span>

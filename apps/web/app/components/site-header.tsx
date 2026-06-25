@@ -15,7 +15,7 @@ export function SiteHeader({ right }: { right?: React.ReactNode }) {
   return (
     <header className="sticky top-0 z-30 border-b border-border/60 bg-background/80 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-3xl items-center justify-between gap-3 px-4">
-        <Link to="/" className="flex items-center gap-2">
+        <Link to="/" viewTransition className="flex items-center gap-2">
           <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <Globe2 className="size-4" />
           </span>
