@@ -36,16 +36,16 @@ function catLabel(category: string): string {
   return category === "All" ? emoji : `${emoji} ${category}`
 }
 
-// One square per attribute (category, birthplace, birth year, death place,
-// death year) — green if it matched the answer, grey otherwise.
+// One square per attribute (birthplace, birth year, death place, death year,
+// age) — green if it matched the answer, grey otherwise.
 function guessRow(g: PublicPuzzle["guesses"][number]): string {
   if (g.correct) return "🟩🟩🟩🟩🟩 🎯"
   return [
-    g.categoryMatch,
     g.birthPlaceMatch,
     g.birthYearMatch,
     g.deathPlaceMatch,
     g.deathYearMatch,
+    g.ageMatch,
   ]
     .map((m) => (m ? "🟩" : "⬜"))
     .join("")

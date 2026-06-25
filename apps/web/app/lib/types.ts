@@ -68,22 +68,22 @@ export interface GuessFeedback {
   id: string
   name: string
   correct: boolean
-  categories: string[]
-  categoryMatch: boolean
-  birthPlace: string
+  birth: NamedPoint // guessed person's birthplace (also used for the map marker)
   birthPlaceMatch: boolean
   birthYearLabel: string
   birthYearMatch: boolean
   birthYearDir: Direction
-  deathPlace: string
+  death: NamedPoint | null
   deathPlaceMatch: boolean
   deathYearLabel: string
   deathYearMatch: boolean
   deathYearDir: Direction
+  age: number // age at death (lifespan in years)
+  ageMatch: boolean
+  ageDir: Direction
   popularity: number // 0..100 (100 = most famous)
   popularityMatch: boolean
   popularityDir: Direction
-  birth: NamedPoint // guessed person's birthplace (for the map marker)
 }
 
 export interface Reveal {

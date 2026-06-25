@@ -12,7 +12,6 @@ import {
   PEOPLE,
   pool,
 } from "./dataset.server"
-import { placeLabel } from "./place"
 import type {
   Direction,
   GameMode,
@@ -152,31 +151,22 @@ function samePlace(a?: Place | null, b?: Place | null): boolean {
   return !!a && !!b && a.lat === b.lat && a.lon === b.lon
 }
 
+// Age at death (lifespan), in years. Everyone in the dataset is deceased.
+function ageOf(p: Person): number {
+  return p.dod ? p.dod.year - p.dob.year : 0
+}
+
 function evaluateGuess(answer: Person, guess: Person): GuessFeedback {
   const aPop = popularity(answer)
   const gPop = popularity(guess)
+  const aAge = ageOf(answer)
+  const gAge = ageOf(guess)
   const deathYearMatch =
     !!guess.dod && !!answer.dod && guess.dod.year === answer.dod.year
   return {
     id: guess.id,
     name: guess.name,
     correct: guess.id === answer.id,
-    categories: guess.categories,
-    categoryMatch: guess.categories.some((c) => answer.categories.includes(c)),
-    birthPlace: placeLabel(guess.birth),
-    birthPlaceMatch: samePlace(guess.birth, answer.birth),
-    birthYearLabel: yearLabel(guess.dob),
-    birthYearMatch: guess.dob.year === answer.dob.year,
-    birthYearDir: dirOf(answer.dob.year, guess.dob.year),
-    deathPlace: guess.death ? placeLabel(guess.death) : "—",
-    deathPlaceMatch: samePlace(guess.death, answer.death),
-    deathYearLabel: guess.dod ? yearLabel(guess.dod) : "—",
-    deathYearMatch,
-    deathYearDir:
-      guess.dod && answer.dod ? dirOf(answer.dod.year, guess.dod.year) : "same",
-    popularity: gPop,
-    popularityMatch: Math.abs(aPop - gPop) <= 1,
-    popularityDir: dirOf(aPop, gPop),
     birth: {
       lat: guess.birth.lat,
       lon: guess.birth.lon,
@@ -184,6 +174,30 @@ function evaluateGuess(answer: Person, guess: Person): GuessFeedback {
       region: guess.birth.region,
       country: guess.birth.country,
     },
+    birthPlaceMatch: samePlace(guess.birth, answer.birth),
+    birthYearLabel: yearLabel(guess.dob),
+    birthYearMatch: guess.dob.year === answer.dob.year,
+    birthYearDir: dirOf(answer.dob.year, guess.dob.year),
+    death: guess.death
+      ? {
+          lat: guess.death.lat,
+          lon: guess.death.lon,
+          name: guess.death.name,
+          region: guess.death.region,
+          country: guess.death.country,
+        }
+      : null,
+    deathPlaceMatch: samePlace(guess.death, answer.death),
+    deathYearLabel: guess.dod ? yearLabel(guess.dod) : "—",
+    deathYearMatch,
+    deathYearDir:
+      guess.dod && answer.dod ? dirOf(answer.dod.year, guess.dod.year) : "same",
+    age: gAge,
+    ageMatch: gAge === aAge,
+    ageDir: dirOf(aAge, gAge),
+    popularity: gPop,
+    popularityMatch: Math.abs(aPop - gPop) <= 1,
+    popularityDir: dirOf(aPop, gPop),
   }
 }
 

@@ -22,6 +22,23 @@ export function Layout({ children }: { children: React.ReactNode }) {
           name="description"
           content="A daily geography guessing game. From a birthplace, a resting place, and two dates, name the famous person."
         />
+        {/* Social embed (Open Graph + Twitter) */}
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="dobdodle" />
+        <meta property="og:title" content="dobdodle — guess the famous person" />
+        <meta
+          property="og:description"
+          content="A daily geography guessing game. From a birthplace, a resting place, and two dates, name the famous person."
+        />
+        <meta property="og:image" content="/embed.webp" />
+        <meta property="og:image:type" content="image/webp" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="dobdodle — guess the famous person" />
+        <meta
+          name="twitter:description"
+          content="A daily geography guessing game. From a birthplace, a resting place, and two dates, name the famous person."
+        />
+        <meta name="twitter:image" content="/embed.webp" />
         <Meta />
         <Links />
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />

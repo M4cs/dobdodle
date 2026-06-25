@@ -7,7 +7,7 @@ import { GuessSearch } from "./guess-search"
 import { WorldMap, type MapPoint } from "./world-map"
 import { formatGameDate } from "../lib/dates"
 import { haversine } from "../lib/geo"
-import { placeContext, placeLabel } from "../lib/place"
+import { placeContext, placeLabel, placeShort } from "../lib/place"
 import type { NameEntry, PublicPuzzle } from "../lib/types"
 
 interface PuzzleBoardProps {
@@ -99,18 +99,13 @@ export function PuzzleBoard({
   return (
     <div className="flex flex-col gap-5">
       <div className="grid grid-cols-2 gap-3">
-        <DateStat
-          tone="born"
-          label="Born"
-          date={puzzle.dobDisplay}
-          place={placeLabel(puzzle.birth)}
-        />
+        <DateStat tone="born" label="Born" date={puzzle.dobDisplay} point={puzzle.birth} />
         {puzzle.death && puzzle.dodDisplay && (
           <DateStat
             tone="died"
             label="Died"
             date={puzzle.dodDisplay}
-            place={placeLabel(puzzle.death)}
+            point={puzzle.death}
           />
         )}
       </div>
@@ -164,13 +159,14 @@ function DateStat({
   tone,
   label,
   date,
-  place,
+  point,
 }: {
   tone: "born" | "died"
   label: string
   date: string
-  place: string
+  point: PublicPuzzle["birth"]
 }) {
+  const place = placeShort(point)
   return (
     <div className="rounded-xl border border-border bg-card p-4">
       <div className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
@@ -182,8 +178,12 @@ function DateStat({
       <div className="mt-1.5 font-heading text-xl leading-tight font-bold sm:text-2xl">
         {date}
       </div>
-      <div className="mt-1 truncate text-sm text-muted-foreground" title={place}>
-        {place}
+      <div
+        className="mt-1 flex items-center gap-1 text-sm text-muted-foreground"
+        title={placeLabel(point)}
+      >
+        <span className="truncate">{place.text}</span>
+        {place.flag && <span className="shrink-0">{place.flag}</span>}
       </div>
     </div>
   )
