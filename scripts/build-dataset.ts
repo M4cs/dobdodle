@@ -35,7 +35,10 @@ function monthRange(start: string, end: string): string[] {
   }
   return out
 }
-const MONTHS = monthRange("2024-01", "2026-04")
+const MONTHS = monthRange("2024-01", "2026-05")
+// The daily pool is ranked by "recent" views — who's currently in the public
+// eye — using the most recent months, rather than all-time totals.
+const RECENT_MONTHS = new Set(monthRange("2026-03", "2026-05"))
 
 // ---- tiny resilient JSON fetch ----------------------------------------------
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
@@ -74,10 +77,18 @@ const EXCLUDE_PREFIX = [
   "User:",
 ]
 
-async function gatherCandidates(): Promise<{ title: string; views: number }[]> {
+interface Candidate {
+  title: string
+  views: number // all-time (fame)
+  recent: number // recent months only (current relevance)
+}
+
+async function gatherCandidates(): Promise<Candidate[]> {
   const views = new Map<string, number>()
+  const recent = new Map<string, number>()
   for (const month of MONTHS) {
     const url = `https://wikimedia.org/api/rest_v1/metrics/pageviews/top/en.wikipedia/all-access/${month}/all-days`
+    const isRecent = RECENT_MONTHS.has(month)
     try {
       const data = await getJSON<any>(url)
       const articles = data?.items?.[0]?.articles ?? []
@@ -86,8 +97,9 @@ async function gatherCandidates(): Promise<{ title: string; views: number }[]> {
         if (EXCLUDE_PREFIX.some((p) => t.startsWith(p))) continue
         if (t.includes(":")) continue
         views.set(t, (views.get(t) ?? 0) + a.views)
+        if (isRecent) recent.set(t, (recent.get(t) ?? 0) + a.views)
       }
-      process.stdout.write(".")
+      process.stdout.write(isRecent ? "+" : ".")
     } catch {
       process.stdout.write("x")
     }
@@ -95,7 +107,7 @@ async function gatherCandidates(): Promise<{ title: string; views: number }[]> {
   }
   process.stdout.write("\n")
   return [...views.entries()]
-    .map(([title, v]) => ({ title, views: v }))
+    .map(([title, v]) => ({ title, views: v, recent: recent.get(title) ?? 0 }))
     .sort((a, b) => b.views - a.views)
 }
 
@@ -141,6 +153,7 @@ interface RawPerson {
   qid: string
   title: string
   views: number
+  recent: number
   name: string
   description: string
   dob: any
@@ -172,6 +185,7 @@ function entityToPerson(
   qid: string,
   title: string,
   views: number,
+  recent: number,
   e: any
 ): RawPerson | null {
   const claims: Claims = e.claims ?? {}
@@ -188,6 +202,7 @@ function entityToPerson(
     qid,
     title,
     views,
+    recent,
     name: e.labels?.en?.value ?? title.replace(/_/g, " "),
     description: e.descriptions?.en?.value ?? "",
     dob,
@@ -393,22 +408,28 @@ async function main() {
   const BATCH = 200
   for (let i = 0; i < candidates.length; i += BATCH) {
     const slice = candidates.slice(i, i + BATCH)
-    const titleViews = new Map(slice.map((c) => [c.title, c.views]))
+    const titleViews = new Map(slice.map((c) => [c.title, c]))
     const qmap = await titlesToQids(slice.map((c) => c.title))
     const wanted = [...new Set([...qmap.values()])].filter((q) => !seenQid.has(q))
     wanted.forEach((q) => seenQid.add(q))
     const ents = await fetchEntities(wanted)
     // title->qid is keyed by title; invert qid->title(+views) keeping best views
-    const qidViews = new Map<string, { title: string; views: number }>()
+    const qidViews = new Map<
+      string,
+      { title: string; views: number; recent: number }
+    >()
     for (const [title, qid] of qmap) {
-      const v = titleViews.get(title) ?? 0
+      const c = titleViews.get(title)
+      const v = c?.views ?? 0
       const cur = qidViews.get(qid)
-      if (!cur || v > cur.views) qidViews.set(qid, { title, views: v })
+      if (!cur || v > cur.views) {
+        qidViews.set(qid, { title, views: v, recent: c?.recent ?? 0 })
+      }
     }
-    for (const [qid, { title, views }] of qidViews) {
+    for (const [qid, { title, views, recent }] of qidViews) {
       const e = ents.get(qid)
       if (!e) continue
-      const p = entityToPerson(qid, title, views, e)
+      const p = entityToPerson(qid, title, views, recent, e)
       if (!p) continue
       people.push(p)
       placeQids.add(p.birthQid!)
@@ -448,15 +469,25 @@ async function main() {
       death,
       alive: false,
       categories: categoriesFor(occ, dob.year),
+      recent: p.recent,
     })
   }
 
-  // Fame order already applied; assign rank and flag the daily-eligible pool
-  // (the most-viewed — popular enough to be guessable within five tries).
+  // Overall fame order (all-time views) sets `rank` and the general pools.
+  final.forEach((p, i) => (p.rank = i + 1))
+
+  // The daily pool is the top people by RECENT views — currently in the public
+  // eye (recent deaths, anniversaries, films, news) — so they're top of mind.
   const DAILY_POOL = 300
-  final.forEach((p, i) => {
-    p.rank = i + 1
-    p.daily = i < DAILY_POOL
+  const dailyIds = new Set(
+    [...final]
+      .sort((a, b) => b.recent - a.recent)
+      .slice(0, DAILY_POOL)
+      .map((p) => p.id)
+  )
+  final.forEach((p) => {
+    p.daily = dailyIds.has(p.id)
+    delete p.recent // internal ranking signal only
   })
 
   const categories = [...new Set(final.flatMap((p) => p.categories))].sort()
