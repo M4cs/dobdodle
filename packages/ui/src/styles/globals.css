@@ -42,6 +42,15 @@
     --sidebar-ring: oklch(0.708 0 0);
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
+    --born: oklch(0.62 0.17 152);
+    --born-foreground: oklch(0.98 0.02 152);
+    --died: oklch(0.55 0.2 12);
+    --died-foreground: oklch(0.98 0.02 12);
+    --guess: oklch(0.62 0.12 250);
+    --success: oklch(0.62 0.17 152);
+    --map-land: oklch(0.9 0.004 250);
+    --map-stroke: oklch(0.83 0.006 250);
+    --map-ocean: oklch(0.965 0.008 240);
 }
 
 .dark {
@@ -76,6 +85,15 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.556 0 0);
+    --born: oklch(0.72 0.16 152);
+    --born-foreground: oklch(0.16 0.03 152);
+    --died: oklch(0.68 0.19 14);
+    --died-foreground: oklch(0.16 0.03 14);
+    --guess: oklch(0.7 0.12 250);
+    --success: oklch(0.72 0.16 152);
+    --map-land: oklch(0.32 0.006 250);
+    --map-stroke: oklch(0.42 0.008 250);
+    --map-ocean: oklch(0.22 0.01 250);
 }
 
 @theme inline {
@@ -119,6 +137,15 @@
     --color-sidebar-ring: var(--sidebar-ring);
     --font-sans: 'Outfit', sans-serif;
     --font-heading: var(--font-sans);
+    --color-born: var(--born);
+    --color-born-foreground: var(--born-foreground);
+    --color-died: var(--died);
+    --color-died-foreground: var(--died-foreground);
+    --color-guess: var(--guess);
+    --color-success: var(--success);
+    --color-map-land: var(--map-land);
+    --color-map-stroke: var(--map-stroke);
+    --color-map-ocean: var(--map-ocean);
 }
 
 @layer base {

@@ -6,7 +6,8 @@
     "build": "turbo build",
     "dev": "turbo dev",
     "format": "turbo format",
-    "typecheck": "turbo typecheck"
+    "typecheck": "turbo typecheck",
+    "data": "bun run scripts/build-dataset.ts"
   },
   "devDependencies": {
     "prettier": "^3.8.3",
