@@ -223,20 +223,24 @@ async function fetchLabelMap(qids: string[]): Promise<Map<string, string>> {
   return out
 }
 
+// US (and similar) cities resolve P131 to a county; promote those to the state.
+const COUNTY_SUFFIX = /\b(County|Parish|Census Area|Borough)$/
+
 async function fetchPlaces(qids: string[]): Promise<Map<string, Place>> {
   const ents = await fetchEntities(qids)
-  const adminQids = new Set<string>()
   const staged = new Map<
     string,
     { place: Place; countryQid?: string; regionQid?: string }
   >()
+  const regionQids = new Set<string>()
+  const countryQids = new Set<string>()
   for (const [qid, e] of ents) {
     const coord = mainValues(e.claims ?? {}, "P625")[0]
     if (!coord || coord.globe !== "http://www.wikidata.org/entity/Q2") continue
     const countryQid = mainValues(e.claims ?? {}, "P17")[0]?.id
     const regionQid = mainValues(e.claims ?? {}, "P131")[0]?.id
-    if (countryQid) adminQids.add(countryQid)
-    if (regionQid) adminQids.add(regionQid)
+    if (countryQid) countryQids.add(countryQid)
+    if (regionQid) regionQids.add(regionQid)
     staged.set(qid, {
       place: {
         name: e.labels?.en?.value ?? qid,
@@ -247,14 +251,36 @@ async function fetchPlaces(qids: string[]): Promise<Map<string, Place>> {
       regionQid,
     })
   }
-  const labels = await fetchLabelMap([...adminQids])
+
+  // Resolve region entities to get their label + parent admin (for promotion).
+  const regionEnts = await fetchEntities([...regionQids])
+  const parentQids = new Set<string>()
+  const region = new Map<string, { label?: string; parentQid?: string }>()
+  for (const [qid, e] of regionEnts) {
+    const parentQid = mainValues(e.claims ?? {}, "P131")[0]?.id
+    region.set(qid, { label: e.labels?.en?.value, parentQid })
+    if (parentQid) parentQids.add(parentQid)
+  }
+  const labels = await fetchLabelMap([...countryQids, ...parentQids])
+
   const out = new Map<string, Place>()
   for (const [qid, { place, countryQid, regionQid }] of staged) {
     const country = countryQid ? labels.get(countryQid) : undefined
-    let region = regionQid ? labels.get(regionQid) : undefined
-    // Drop a region that just repeats the city or country.
-    if (region && (region === place.name || region === country)) region = undefined
-    out.set(qid, { ...place, region, country })
+    let regionLabel = regionQid ? region.get(regionQid)?.label : undefined
+    // Promote a US-style county to its state (parent admin).
+    if (
+      regionLabel &&
+      country === "United States" &&
+      COUNTY_SUFFIX.test(regionLabel)
+    ) {
+      const parentQid = region.get(regionQid!)?.parentQid
+      const state = parentQid ? labels.get(parentQid) : undefined
+      if (state) regionLabel = state
+    }
+    if (regionLabel && (regionLabel === place.name || regionLabel === country)) {
+      regionLabel = undefined
+    }
+    out.set(qid, { ...place, region: regionLabel, country })
   }
   return out
 }
