@@ -50,6 +50,7 @@ export interface PublicPuzzle {
   alive: boolean
   dobDisplay: string
   dodDisplay: string | null
+  categories: string[] // the answer's categories, shown as a starting hint
   maxGuesses: number
   guesses: GuessFeedback[]
   solved: boolean

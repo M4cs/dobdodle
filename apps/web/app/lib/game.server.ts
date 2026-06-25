@@ -255,6 +255,7 @@ export function buildPuzzle(t: TokenData, guessedIds: string[]): PublicPuzzle {
     alive: answer.alive,
     dobDisplay: formatGameDate(answer.dob),
     dodDisplay: answer.dod ? formatGameDate(answer.dod) : null,
+    categories: answer.categories,
     maxGuesses: max,
     guesses,
     solved,

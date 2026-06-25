@@ -5,6 +5,7 @@ import { cn } from "@workspace/ui/lib/utils"
 import { GuessRow } from "./guess-row"
 import { GuessSearch } from "./guess-search"
 import { WorldMap, type MapPoint } from "./world-map"
+import { categoryEmoji } from "../lib/categories"
 import { formatGameDate } from "../lib/dates"
 import { haversine } from "../lib/geo"
 import { placeContext, placeLabel, placeShort } from "../lib/place"
@@ -98,6 +99,27 @@ export function PuzzleBoard({
 
   return (
     <div className="flex flex-col gap-5">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+          Category
+        </span>
+        {(puzzle.categories ?? []).length > 0 ? (
+          (puzzle.categories ?? []).map((c) => (
+            <span
+              key={c}
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-sm font-medium"
+            >
+              <span aria-hidden>{categoryEmoji(c)}</span>
+              {c}
+            </span>
+          ))
+        ) : (
+          <span className="rounded-full border border-border bg-card px-3 py-1 text-sm font-medium text-muted-foreground">
+            Unknown
+          </span>
+        )}
+      </div>
+
       <div className="grid grid-cols-2 gap-3">
         <DateStat tone="born" label="Born" date={puzzle.dobDisplay} point={puzzle.birth} />
         {puzzle.death && puzzle.dodDisplay && (
