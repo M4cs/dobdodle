@@ -19,7 +19,6 @@ export interface GameData {
   categories: string[]
   key: string
   seed: string | null
-  hardcore: boolean
   puzzles: PublicPuzzle[]
   names: NameEntry[]
 }
@@ -37,7 +36,6 @@ export async function loadGame(
 ): Promise<GameData> {
   const url = new URL(request.url)
   const category = normalizeCategory(url.searchParams.get("cat"))
-  const hardcore = url.searchParams.get("hard") === "1"
 
   let key: string
   let seed: string | null = null
@@ -49,7 +47,6 @@ export async function loadGame(
       seed = newSeed()
       const next = new URLSearchParams({ seed })
       if (category !== ALL_CATEGORY) next.set("cat", category)
-      if (hardcore) next.set("hard", "1")
       throw redirect(`?${next.toString()}`)
     }
     key = seed
@@ -59,7 +56,7 @@ export async function loadGame(
   const count = SLOT_COUNT[mode]
   const puzzles: PublicPuzzle[] = []
   for (let slot = 0; slot < count && slot < SLOTS[mode]; slot++) {
-    const t = { mode, key, category, slot, hard: hardcore }
+    const t = { mode, key, category, slot }
     puzzles.push(buildPuzzle(t, readGuesses(session, gameIdOf(t), slot)))
   }
 
@@ -69,7 +66,6 @@ export async function loadGame(
     categories: [ALL_CATEGORY, ...CATEGORIES],
     key,
     seed,
-    hardcore,
     puzzles,
     names: nameIndex(),
   }

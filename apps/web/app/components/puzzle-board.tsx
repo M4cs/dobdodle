@@ -1,13 +1,12 @@
 import { useMemo } from "react"
-import { ExternalLink, Lightbulb, Skull, Sprout } from "lucide-react"
-import { Badge } from "@workspace/ui/components/badge"
+import { ExternalLink, Skull, Sprout } from "lucide-react"
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 import { GuessRow } from "./guess-row"
 import { GuessSearch } from "./guess-search"
 import { WorldMap, type MapPoint } from "./world-map"
 import { formatGameDate } from "../lib/dates"
-import { formatDistance, haversine } from "../lib/geo"
+import { haversine } from "../lib/geo"
 import { placeContext, placeLabel } from "../lib/place"
 import type { NameEntry, PublicPuzzle } from "../lib/types"
 
@@ -85,11 +84,7 @@ export function PuzzleBoard({
         lat: g.birth.lat,
         lon: g.birth.lon,
         heading: g.name,
-        lines: [
-          `Born in ${g.birth.name}`,
-          placeContext(g.birth),
-          g.correct ? "Correct!" : `${formatDistance(g.distanceKm)} from the answer`,
-        ].filter(Boolean),
+        lines: [`Born in ${g.birth.name}`, placeContext(g.birth)].filter(Boolean),
       })
     )
     return pts
@@ -135,12 +130,9 @@ export function PuzzleBoard({
         <>
           {!compact && (
             <div className="flex items-center justify-between px-0.5">
-              <span className="text-base font-medium">Who was born here?</span>
+              <span className="text-base font-medium">Who is it?</span>
               <GuessDots used={puzzle.guesses.length} total={puzzle.maxGuesses} />
             </div>
-          )}
-          {!compact && (puzzle.hints.length > 0 || puzzle.nextHint) && (
-            <HintChips hints={puzzle.hints} nextHint={puzzle.nextHint} />
           )}
           <GuessSearch
             names={names}
@@ -193,38 +185,6 @@ function DateStat({
       <div className="mt-1 truncate text-sm text-muted-foreground" title={place}>
         {place}
       </div>
-    </div>
-  )
-}
-
-function HintChips({
-  hints,
-  nextHint,
-}: {
-  hints: PublicPuzzle["hints"]
-  nextHint: string | null
-}) {
-  return (
-    <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-dashed border-border bg-muted/30 px-3 py-2">
-      <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
-        <Lightbulb className="size-3.5" /> Hints
-      </span>
-      {hints.length === 0 && (
-        <span className="text-xs text-muted-foreground">
-          Make a guess to unlock your first hint.
-        </span>
-      )}
-      {hints.map((h, i) => (
-        <Badge key={i} variant="secondary" className="gap-1">
-          <span className="text-muted-foreground">{h.label}</span>
-          <span className="font-semibold">{h.value}</span>
-        </Badge>
-      ))}
-      {nextHint && (
-        <span className="ml-auto text-xs text-muted-foreground">
-          Next: {nextHint}
-        </span>
-      )}
     </div>
   )
 }

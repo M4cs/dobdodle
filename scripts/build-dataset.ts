@@ -15,7 +15,27 @@
  */
 
 const UA = "dobdodle-build/0.2 (engineering@oglabs.dev)"
-const TARGET = 1000
+const TARGET = 300
+const MIN_BIRTH_YEAR = 1800 // drop pre-1800 figures (too obscure)
+
+// Western-world birth countries (incl. common historical forms). Used to keep
+// the dataset to figures a Western audience is likely to recognise.
+const WESTERN = [
+  "United States", "Confederate States", "United Kingdom", "Great Britain",
+  "England", "Scotland", "Wales", "Northern Ireland", "Ireland",
+  "Canada", "Australia", "New Zealand",
+  "France", "French", "Germany", "German", "Prussia", "Bavaria", "Saxony",
+  "Italy", "Italian", "Spain", "Spanish", "Portugal", "Portuguese",
+  "Netherlands", "Dutch", "Holland", "Belgium", "Belgian", "Luxembourg",
+  "Austria", "Austrian", "Switzerland", "Swiss",
+  "Sweden", "Swedish", "Norway", "Norwegian", "Denmark", "Danish",
+  "Finland", "Finnish", "Iceland", "Greece", "Greek",
+  "Poland", "Polish", "Bohemia", "Czech", "Hungary", "Hungarian",
+]
+function isWestern(country?: string): boolean {
+  if (!country) return false
+  return WESTERN.some((k) => country.includes(k))
+}
 const OUT = new URL("../apps/web/app/data/people.json", import.meta.url).pathname
 
 // ---- months to aggregate pageviews over (YYYY/MM) ----------------------------
@@ -447,7 +467,8 @@ async function main() {
   const places = await fetchPlaces([...placeQids])
   const occLabels = await fetchOccupationLabels([...occQids])
 
-  // Require usable coordinates for BOTH birth and death (dead only).
+  // Require usable coordinates for BOTH birth and death (dead only), born in
+  // the modern era (>= 1800), and from the Western world.
   const final: any[] = []
   for (const p of people) {
     if (final.length >= TARGET) break
@@ -457,6 +478,8 @@ async function main() {
     const dob = parseTime(p.dob)
     const dod = p.dod ? parseTime(p.dod) : null
     if (!dob || !dod) continue
+    if (dob.year < MIN_BIRTH_YEAR) continue
+    if (!isWestern(birth.country)) continue
     const occ = p.occQids.map((q: string) => occLabels.get(q) ?? "").filter(Boolean)
     final.push({
       id: p.qid,

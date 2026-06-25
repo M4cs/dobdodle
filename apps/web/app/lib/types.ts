@@ -33,12 +33,6 @@ export interface Person {
 
 export type GameMode = "daily" | "unlimited" | "rapid"
 
-/** A progressively-revealed clue about the answer's name. */
-export interface Hint {
-  label: string
-  value: string
-}
-
 export interface NamedPoint {
   lat: number
   lon: number
@@ -58,25 +52,38 @@ export interface PublicPuzzle {
   dodDisplay: string | null
   maxGuesses: number
   guesses: GuessFeedback[]
-  hints: Hint[]
-  nextHint: string | null // label of the hint unlocked by the next guess
-  hardcore: boolean
   solved: boolean
   finished: boolean
   reveal: Reveal | null
 }
 
+/** Whether the true answer's value is higher/lower than the guess's. */
+export type Direction = "up" | "down" | "same"
+
+/**
+ * Wordle-style per-attribute comparison of a guess against the hidden answer.
+ * `*Match` => exact match (green); numeric fields carry a direction arrow.
+ */
 export interface GuessFeedback {
   id: string
   name: string
   correct: boolean
-  distanceKm: number
-  direction: string // 8-point arrow toward the answer's birthplace
-  proximity: number // 0..100, higher = closer
-  sharedCategories: number
-  birth: NamedPoint // guessed person's birthplace
-  yearDelta: number | null
-  yearHint: "earlier" | "later" | "same" | null // answer born earlier/later
+  categories: string[]
+  categoryMatch: boolean
+  birthPlace: string
+  birthPlaceMatch: boolean
+  birthYearLabel: string
+  birthYearMatch: boolean
+  birthYearDir: Direction
+  deathPlace: string
+  deathPlaceMatch: boolean
+  deathYearLabel: string
+  deathYearMatch: boolean
+  deathYearDir: Direction
+  popularity: number // 0..100 (100 = most famous)
+  popularityMatch: boolean
+  popularityDir: Direction
+  birth: NamedPoint // guessed person's birthplace (for the map marker)
 }
 
 export interface Reveal {

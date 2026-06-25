@@ -3,20 +3,22 @@
 // SECRET, so the client — which has neither the dataset nor the secret — cannot
 // reproduce the mapping or learn the answer ahead of a correct guess.
 import { createHmac, randomBytes } from "node:crypto"
-import { formatGameDate } from "./dates"
+import { formatGameDate, yearLabel } from "./dates"
 import {
   ALL_CATEGORY,
   BY_ID,
   dailyPool,
   isValidCategory,
+  PEOPLE,
   pool,
 } from "./dataset.server"
-import { bearing, directionArrow, haversine, proximityScore } from "./geo"
+import { placeLabel } from "./place"
 import type {
+  Direction,
   GameMode,
   GuessFeedback,
-  Hint,
   Person,
+  Place,
   PublicPuzzle,
   Reveal,
 } from "./types"
@@ -96,31 +98,26 @@ interface TokenData {
   key: string
   category: string
   slot: number
-  hard: boolean // hardcore: suppress hints
 }
 const b64url = {
   encode: (s: string) => Buffer.from(s, "utf8").toString("base64url"),
   decode: (s: string) => Buffer.from(s, "base64url").toString("utf8"),
 }
 export function encodeToken(t: TokenData): string {
-  return b64url.encode(
-    `${t.mode}␟${t.key}␟${t.category}␟${t.slot}␟${t.hard ? 1 : 0}`
-  )
+  return b64url.encode(`${t.mode}␟${t.key}␟${t.category}␟${t.slot}`)
 }
 export function decodeToken(token: string): TokenData | null {
   try {
-    const [mode, key, category, slot, hard] = b64url.decode(token).split("␟")
+    const [mode, key, category, slot] = b64url.decode(token).split("␟")
     if (!isMode(mode) || !isValidCategory(category)) return null
     const slotN = Number(slot)
     if (!Number.isInteger(slotN) || slotN < 0 || slotN >= SLOTS[mode]) return null
-    return { mode, key, category, slot: slotN, hard: hard === "1" }
+    return { mode, key, category, slot: slotN }
   } catch {
     return null
   }
 }
 
-// Hardcore is purely a presentation choice (hints on/off); it does NOT change
-// the answer, so it's excluded from the game id (shared progress).
 export function gameIdOf(t: TokenData): string {
   return `${t.mode}|${t.key}|${t.category}`
 }
@@ -141,31 +138,45 @@ export function normalizeCategory(c: string | null | undefined): string {
 }
 
 // ---- guess evaluation -------------------------------------------------------
+// 0..100 fame score from the all-time rank (1 = most famous).
+const POP_MAX = Math.max(1, PEOPLE.length - 1)
+function popularity(p: Person): number {
+  return Math.round((1 - (p.rank - 1) / POP_MAX) * 100)
+}
+
+function dirOf(answerVal: number, guessVal: number): Direction {
+  return answerVal > guessVal ? "up" : answerVal < guessVal ? "down" : "same"
+}
+
+function samePlace(a?: Place | null, b?: Place | null): boolean {
+  return !!a && !!b && a.lat === b.lat && a.lon === b.lon
+}
+
 function evaluateGuess(answer: Person, guess: Person): GuessFeedback {
-  const correct = guess.id === answer.id
-  const dist = haversine(
-    guess.birth.lat,
-    guess.birth.lon,
-    answer.birth.lat,
-    answer.birth.lon
-  )
-  const brg = bearing(
-    guess.birth.lat,
-    guess.birth.lon,
-    answer.birth.lat,
-    answer.birth.lon
-  )
-  const shared = guess.categories.filter((c) =>
-    answer.categories.includes(c)
-  ).length
+  const aPop = popularity(answer)
+  const gPop = popularity(guess)
+  const deathYearMatch =
+    !!guess.dod && !!answer.dod && guess.dod.year === answer.dod.year
   return {
     id: guess.id,
     name: guess.name,
-    correct,
-    distanceKm: Math.round(dist),
-    direction: correct ? "🎯" : directionArrow(brg),
-    proximity: proximityScore(dist),
-    sharedCategories: shared,
+    correct: guess.id === answer.id,
+    categories: guess.categories,
+    categoryMatch: guess.categories.some((c) => answer.categories.includes(c)),
+    birthPlace: placeLabel(guess.birth),
+    birthPlaceMatch: samePlace(guess.birth, answer.birth),
+    birthYearLabel: yearLabel(guess.dob),
+    birthYearMatch: guess.dob.year === answer.dob.year,
+    birthYearDir: dirOf(answer.dob.year, guess.dob.year),
+    deathPlace: guess.death ? placeLabel(guess.death) : "—",
+    deathPlaceMatch: samePlace(guess.death, answer.death),
+    deathYearLabel: guess.dod ? yearLabel(guess.dod) : "—",
+    deathYearMatch,
+    deathYearDir:
+      guess.dod && answer.dod ? dirOf(answer.dod.year, guess.dod.year) : "same",
+    popularity: gPop,
+    popularityMatch: Math.abs(aPop - gPop) <= 1,
+    popularityDir: dirOf(aPop, gPop),
     birth: {
       lat: guess.birth.lat,
       lon: guess.birth.lon,
@@ -173,13 +184,6 @@ function evaluateGuess(answer: Person, guess: Person): GuessFeedback {
       region: guess.birth.region,
       country: guess.birth.country,
     },
-    yearDelta: Math.abs(guess.dob.year - answer.dob.year),
-    yearHint:
-      answer.dob.year < guess.dob.year
-        ? "earlier"
-        : answer.dob.year > guess.dob.year
-          ? "later"
-          : "same",
   }
 }
 
@@ -204,25 +208,6 @@ function toReveal(p: Person): Reveal {
   }
 }
 
-// Progressive name hints, unlocked one per wrong guess.
-function letters(s: string): number {
-  return (s.match(/\p{L}/gu) ?? []).length
-}
-function hintLadder(name: string): Hint[] {
-  const parts = name.trim().split(/\s+/)
-  const first = parts[0] ?? ""
-  const last = parts.length > 1 ? parts[parts.length - 1]! : ""
-  return [
-    { label: "First name", value: `${letters(first)} letters` },
-    {
-      label: "Last name",
-      value: last ? `${letters(last)} letters` : "No surname",
-    },
-    { label: "First initial", value: (first[0] ?? "?").toUpperCase() },
-    { label: "Surname initial", value: last ? last[0]!.toUpperCase() : "—" },
-  ]
-}
-
 // ---- public puzzle view -----------------------------------------------------
 export function buildPuzzle(t: TokenData, guessedIds: string[]): PublicPuzzle {
   const answer = resolveAnswer(t.mode, t.key, t.category, t.slot)
@@ -233,13 +218,6 @@ export function buildPuzzle(t: TokenData, guessedIds: string[]): PublicPuzzle {
     .map((g) => evaluateGuess(answer, g))
   const solved = guesses.some((g) => g.correct)
   const finished = solved || guesses.length >= max
-
-  const ladder = hintLadder(answer.name)
-  const used = Math.min(guesses.length, ladder.length)
-  const showHints = !t.hard && !finished
-  const hints = showHints ? ladder.slice(0, used) : []
-  const nextHint =
-    showHints && used < ladder.length ? ladder[used]!.label : null
 
   return {
     token: encodeToken(t),
@@ -265,9 +243,6 @@ export function buildPuzzle(t: TokenData, guessedIds: string[]): PublicPuzzle {
     dodDisplay: answer.dod ? formatGameDate(answer.dod) : null,
     maxGuesses: max,
     guesses,
-    hints,
-    nextHint,
-    hardcore: t.hard,
     solved,
     finished,
     reveal: finished ? toReveal(answer) : null,

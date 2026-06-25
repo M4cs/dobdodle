@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react"
 import { CategoryBar } from "./category-bar"
 import { GameShell } from "./game-shell"
-import { HardcoreToggle } from "./hardcore-toggle"
 import { PuzzleBoard } from "./puzzle-board"
 import { ShareButton } from "./share-button"
 import { useGuessing } from "./use-guessing"
@@ -58,7 +57,6 @@ export function DailyScreen({ data }: { data: GameData }) {
       data={data}
       title="Daily challenge"
       subtitle={`${prettyDate(data.key)} · 5 guesses · same for everyone`}
-      action={<HardcoreToggle />}
       hideCategories
     >
       <PuzzleBoard

@@ -4,7 +4,6 @@ import { ArrowRight, RotateCcw } from "lucide-react"
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 import { GameShell } from "./game-shell"
-import { HardcoreToggle } from "./hardcore-toggle"
 import { PuzzleBoard } from "./puzzle-board"
 import { ShareButton } from "./share-button"
 import { useGuessing } from "./use-guessing"
@@ -33,7 +32,6 @@ export function UnlimitedScreen({ data }: { data: GameData }) {
       data={data}
       title="Unlimited"
       subtitle="5 people · 5 guesses each · fresh set anytime"
-      action={<HardcoreToggle />}
     >
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">

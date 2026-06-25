@@ -36,18 +36,19 @@ function catLabel(category: string): string {
   return category === "All" ? emoji : `${emoji} ${category}`
 }
 
-// Five squares encoding a guess's closeness (each = 20%), then a direction.
+// One square per attribute (category, birthplace, birth year, death place,
+// death year) — green if it matched the answer, grey otherwise.
 function guessRow(g: PublicPuzzle["guesses"][number]): string {
   if (g.correct) return "🟩🟩🟩🟩🟩 🎯"
-  const full = Math.floor(g.proximity / 20)
-  const rem = g.proximity % 20
-  let s = ""
-  for (let i = 0; i < 5; i++) {
-    if (i < full) s += "🟩"
-    else if (i === full && rem >= 10) s += "🟨"
-    else s += "⬜"
-  }
-  return `${s} ${g.direction}`
+  return [
+    g.categoryMatch,
+    g.birthPlaceMatch,
+    g.birthYearMatch,
+    g.deathPlaceMatch,
+    g.deathYearMatch,
+  ]
+    .map((m) => (m ? "🟩" : "⬜"))
+    .join("")
 }
 
 export function shareDaily(

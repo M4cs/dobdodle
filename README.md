@@ -14,29 +14,32 @@ famous person. Built on React Router 7 (SSR), Tailwind v4 and a shadcn
 - **Rapid fire** — 60 seconds, one guess per person, name as many as you can.
 
 Each mode can be filtered to a **category** (Musicians, Athletes, Leaders &
-Politicians, Historical Figures, …) derived from Wikidata occupations.
+Politicians, …) derived from Wikidata occupations.
 
-Everyone in the dataset is **deceased** — each puzzle has both a birth and a
-death marker. The daily is drawn from the ~300 most-viewed (most guessable)
-people so it stays winnable within five tries.
+The dataset is the **300 biggest, most-popular Western-world figures** (by
+English-Wikipedia page views) who are **deceased** and **born in 1800 or later**
+— so every answer is someone broadly recognisable, with both a birth and a death
+marker.
 
 ## How guessing works
 
-Pick a person from the autocomplete. A wrong guess tells you the distance and
-compass direction from that person's birthplace to the answer's, plus a
-closeness score — so you can triangulate, Worldle-style.
+Pick a person from the autocomplete. Each guess returns a **Wordle-style row of
+tiles** comparing it to the hidden answer:
 
-**Progressive hints** unlock as you spend guesses: 1st → first-name length,
-2nd → last-name length, 3rd → first initial, 4th → surname initial. Flip on
-**Hardcore** (the toggle on the daily/unlimited screens, or `?hard=1`) to play
-with no hints at all.
+- **Category, birth place, death place** — green if it matches, grey if not.
+- **Birth year, death year** — green if the same year, otherwise grey with an
+  ⬆️/⬇️ arrow showing whether the answer's is later/earlier.
+- **Popularity** — a 0–100 fame score for your guess, with an arrow toward the
+  answer's fame.
 
-The daily result is also saved to **localStorage**: a finished daily can't be
+So you triangulate the person from the facts your guesses reveal.
+
+The daily result is saved to **localStorage**: a finished daily can't be
 replayed (even if the session cookie is cleared), and in-progress play is
 restored when you come back.
 
 When a game ends, a **Share** button copies a spoiler-free, Wordle-style result
-(a proximity grid of 🟩🟨⬜ squares + direction arrows, plus a link) — using the
+(a grid of 🟩/⬜ squares — one per attribute match — plus a link) using the
 native share sheet on mobile and the clipboard elsewhere.
 
 ## Anti-cheat design
@@ -58,16 +61,18 @@ Set `DOBDODLE_SECRET` in production (see `apps/web/.env.example`).
 
 ## Building the dataset
 
-`people.json` is committed, but you can regenerate it (top ~1000 most-viewed
-English Wikipedia people, enriched from Wikidata):
+`people.json` is committed, but you can regenerate it:
 
 ```bash
 bun run data
 ```
 
-The pipeline (`scripts/build-dataset.ts`) aggregates Wikimedia pageviews, keeps
-humans with a birth date + located birthplace, attaches birth/death
-coordinates, and buckets occupations into categories.
+The pipeline (`scripts/build-dataset.ts`) aggregates Wikimedia page views, keeps
+deceased humans with located birth + death places, then filters to the **top
+300** most-viewed who are **born ≥ 1800** and from the **Western world**. It
+attaches birth/death coordinates, resolves region/country (promoting US counties
+to their state), and buckets occupations into categories. Tunables live at the
+top of the script (`TARGET`, `MIN_BIRTH_YEAR`, `WESTERN`, `RECENT_MONTHS`).
 
 ## Develop
 
