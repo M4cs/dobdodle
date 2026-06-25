@@ -5,6 +5,7 @@
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev",
+    "start": "bun --cwd apps/web start",
     "format": "turbo format",
     "typecheck": "turbo typecheck",
     "data": "bun run scripts/build-dataset.ts"
