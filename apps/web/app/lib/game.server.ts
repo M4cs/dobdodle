@@ -78,15 +78,36 @@ function sequence(gameId: string, poolLen: number, count: number): number[] {
   return seq
 }
 
+// Deterministic float in [0, 1) from the secret-keyed hash.
+function hashFloat(s: string): number {
+  return hashInt(s) / 0x100000000
+}
+
+// Weighted, deterministic pick: people with a higher shock/controversy weight
+// are proportionally more likely to be chosen for the daily.
+function weightedPick(people: Person[], seed: string): Person {
+  const total = people.reduce((sum, p) => sum + (p.weight || 1), 0)
+  let target = hashFloat(seed) * total
+  for (const p of people) {
+    target -= p.weight || 1
+    if (target < 0) return p
+  }
+  return people[people.length - 1]
+}
+
 function resolveAnswer(
   mode: GameMode,
   key: string,
   category: string,
   slot: number
 ): Person {
-  // Daily draws from the curated, most-guessable pool; other modes use the
-  // full category pool for variety.
-  const p = mode === "daily" ? dailyPool(category) : pool(category)
+  if (mode === "daily") {
+    // Daily draws from the curated pool, weighted toward controversial /
+    // newsworthy deaths so they surface more often.
+    return weightedPick(dailyPool(category), `daily|${key}|${category}|${slot}`)
+  }
+  // Other modes use uniform selection over the full category pool for variety.
+  const p = pool(category)
   const gameId = `${mode}|${key}|${category}`
   return p[sequence(gameId, p.length, slot + 1)[slot]]
 }

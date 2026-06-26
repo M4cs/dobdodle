@@ -29,6 +29,7 @@ export interface Person {
   categories: string[]
   rank: number
   daily: boolean // eligible for the daily puzzle (top-popularity)
+  weight: number // daily selection weight (shock/controversy factor, 1..6)
 }
 
 export type GameMode = "daily" | "unlimited" | "rapid"

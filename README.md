@@ -8,7 +8,10 @@ famous person. Built on React Router 7 (SSR), Tailwind v4 and a shadcn
 ## Game modes
 
 - **Daily** — one mystery person per day, five guesses. The same puzzle for
-  everyone (seeded by the UTC date, server-side).
+  everyone (seeded by the UTC date, server-side). Selection is **weighted toward
+  controversial / newsworthy deaths** (assassinations, murders, overdoses,
+  crashes, executions) via a per-person shock score derived from Wikidata
+  manner/cause of death.
 - **Unlimited** — five people, five guesses each. Start a fresh, shareable set
   anytime (seed lives in the URL).
 - **Rapid fire** — 60 seconds, one guess per person, name as many as you can.

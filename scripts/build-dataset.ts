@@ -181,6 +181,8 @@ interface RawPerson {
   birthQid: string | null
   deathQid: string | null
   occQids: string[]
+  mannerQids: string[] // P1196 manner of death
+  causeQids: string[] // P509 cause of death
   imageFile: string | null
 }
 
@@ -230,6 +232,12 @@ function entityToPerson(
     birthQid: birth.id,
     deathQid: death?.id ?? null,
     occQids: mainValues(claims, "P106")
+      .map((v: any) => v?.id)
+      .filter(Boolean),
+    mannerQids: mainValues(claims, "P1196")
+      .map((v: any) => v?.id)
+      .filter(Boolean),
+    causeQids: mainValues(claims, "P509")
       .map((v: any) => v?.id)
       .filter(Boolean),
     imageFile: image,
@@ -391,6 +399,38 @@ function categoriesFor(occLabels: string[], birthYear: number | null): string[] 
   return [...cats]
 }
 
+// ---- daily "shock factor" weight -------------------------------------------
+// Bias the daily toward controversial / newsworthy deaths. 1 = natural/quiet,
+// up to 6 = assassination, murder, execution, crash, overdose, etc.
+const MANNER_WEIGHT: Record<string, number> = {
+  Q149086: 6, // homicide
+  Q132821: 6, // murder
+  Q8454: 6, // capital punishment (execution)
+  Q10737: 5, // suicide
+  Q171558: 4, // accident
+  Q855091: 4, // death in battle
+  Q3739104: 1, // natural causes
+}
+const CAUSE_KEYWORDS: Array<[string, number]> = [
+  ["assassination", 6], ["murder", 6], ["homicide", 6], ["lynching", 6],
+  ["execution", 6], ["capital punishment", 6], ["hanging", 6], ["guillotine", 6],
+  ["firing squad", 6], ["lethal injection", 6], ["electric chair", 6], ["beheading", 6],
+  ["aviation accident", 6], ["plane crash", 6], ["aircraft", 6], ["helicopter", 6],
+  ["overdose", 5], ["poisoning", 5], ["gunshot", 5], ["ballistic trauma", 5],
+  ["shooting", 5], ["stabbing", 5], ["explosion", 5], ["bombing", 5],
+  ["drowning", 4], ["drowned", 4], ["traffic collision", 4], ["motor vehicle", 4],
+  ["motorcycle", 4], ["asphyxiation", 4], ["electrocution", 4], ["fire", 4],
+  ["fall", 3],
+]
+function shockWeight(mannerQids: string[], causeLabels: string[]): number {
+  let w = 1
+  for (const q of mannerQids) w = Math.max(w, MANNER_WEIGHT[q] ?? 2)
+  for (const l of causeLabels) {
+    for (const [k, wt] of CAUSE_KEYWORDS) if (occMatches(l, k)) w = Math.max(w, wt)
+  }
+  return w
+}
+
 // ---- date parsing ------------------------------------------------------------
 interface GameDate {
   iso: string // signed ISO-ish, e.g. "1879-03-14" or "-0044-03-15"
@@ -421,6 +461,7 @@ async function main() {
   const people: any[] = []
   const placeQids = new Set<string>()
   const occQids = new Set<string>()
+  const causeQids = new Set<string>()
   const seenQid = new Set<string>()
 
   // Dead, well-known people are rare among top views, so resolve the whole
@@ -455,6 +496,7 @@ async function main() {
       placeQids.add(p.birthQid!)
       if (p.deathQid) placeQids.add(p.deathQid)
       p.occQids.forEach((q) => occQids.add(q))
+      p.causeQids.forEach((q) => causeQids.add(q))
     }
     console.log(
       `  resolved ${Math.min(i + BATCH, candidates.length)}/${candidates.length} candidates -> ${people.length} people`
@@ -466,6 +508,7 @@ async function main() {
   console.log(`Fetching ${placeQids.size} places + ${occQids.size} occupations...`)
   const places = await fetchPlaces([...placeQids])
   const occLabels = await fetchOccupationLabels([...occQids])
+  const causeLabels = await fetchOccupationLabels([...causeQids]) // lowercased
 
   // Require usable coordinates for BOTH birth and death (dead only), born in
   // the modern era (>= 1800), and from the Western world.
@@ -481,6 +524,9 @@ async function main() {
     if (dob.year < MIN_BIRTH_YEAR) continue
     if (!isWestern(birth.country)) continue
     const occ = p.occQids.map((q: string) => occLabels.get(q) ?? "").filter(Boolean)
+    const causes = p.causeQids
+      .map((q: string) => causeLabels.get(q) ?? "")
+      .filter(Boolean)
     final.push({
       id: p.qid,
       name: p.name,
@@ -492,6 +538,7 @@ async function main() {
       death,
       alive: false,
       categories: categoriesFor(occ, dob.year),
+      weight: shockWeight(p.mannerQids, causes),
       recent: p.recent,
     })
   }
@@ -528,6 +575,13 @@ async function main() {
   for (const c of categories) {
     console.log(`  ${c}: ${final.filter((p) => p.categories.includes(c)).length}`)
   }
+  const dramatic = final.filter((p) => p.weight >= 4)
+  console.log(
+    `\nShock-weighted (weight >= 4): ${dramatic.length}/${final.length} people`
+  )
+  console.log(
+    `  e.g. ${dramatic.slice(0, 10).map((p) => `${p.name}(${p.weight})`).join(", ")}`
+  )
 }
 
 main().catch((e) => {
