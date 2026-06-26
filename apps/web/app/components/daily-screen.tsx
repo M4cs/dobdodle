@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Trophy } from "lucide-react"
+import { Clock, Trophy } from "lucide-react"
 import { CategoryBar } from "./category-bar"
 import { GameShell } from "./game-shell"
 import { PuzzleBoard } from "./puzzle-board"
@@ -32,6 +32,45 @@ function PercentileCard({ stats }: { stats: DailyStats }) {
           </p>
         )}
       </div>
+    </div>
+  )
+}
+
+function pad(n: number): string {
+  return String(n).padStart(2, "0")
+}
+
+/** Live countdown to the next daily, which rolls over at midnight UTC. */
+function DailyCountdown() {
+  const [ms, setMs] = useState<number | null>(null)
+
+  useEffect(() => {
+    const tick = () => {
+      const now = new Date()
+      const next = Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate() + 1
+      )
+      setMs(next - now.getTime())
+    }
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [])
+
+  const total = Math.max(0, Math.floor((ms ?? 0) / 1000))
+  const h = Math.floor(total / 3600)
+  const m = Math.floor((total % 3600) / 60)
+  const s = total % 60
+
+  return (
+    <div className="flex w-full max-w-sm items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm">
+      <Clock className="size-4 shrink-0 text-muted-foreground" />
+      <span className="text-muted-foreground">Next puzzle in</span>
+      <span className="font-mono text-base font-semibold tabular-nums">
+        {ms === null ? "--:--:--" : `${pad(h)}:${pad(m)}:${pad(s)}`}
+      </span>
     </div>
   )
 }
@@ -97,6 +136,7 @@ export function DailyScreen({ data }: { data: GameData }) {
         share={
           <div className="flex flex-col items-center gap-3">
             {stats && <PercentileCard stats={stats} />}
+            <DailyCountdown />
             <ShareButton
               getText={() => shareDaily(puzzle, data.category, data.key)}
             />

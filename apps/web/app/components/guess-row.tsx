@@ -52,7 +52,7 @@ export function GuessRow({ g }: { g: GuessFeedback }) {
       )}
     >
       <div className="mb-2 flex items-center justify-between gap-2 px-1.5">
-        <span className="truncate font-heading text-base font-semibold sm:text-lg">
+        <span className="truncate font-heading text-lg font-semibold sm:text-xl">
           {g.name}
         </span>
         {g.correct && (
@@ -88,7 +88,7 @@ function Tile({ label, value, match, flag, dir }: TileSpec) {
       >
         {label}
       </span>
-      <span className="flex items-center gap-1 text-sm leading-tight font-semibold">
+      <span className="flex items-center gap-1 text-base leading-tight font-semibold">
         <span className="truncate" title={value}>
           {value}
         </span>

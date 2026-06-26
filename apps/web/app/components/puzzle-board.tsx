@@ -1,6 +1,5 @@
 import { useMemo } from "react"
-import { ExternalLink, Skull, Sprout } from "lucide-react"
-import { Button } from "@workspace/ui/components/button"
+import { Check, ExternalLink } from "lucide-react"
 import { cn } from "@workspace/ui/lib/utils"
 import { GuessRow } from "./guess-row"
 import { GuessSearch } from "./guess-search"
@@ -9,7 +8,7 @@ import { categoryEmoji } from "../lib/categories"
 import { formatGameDate } from "../lib/dates"
 import { haversine } from "../lib/geo"
 import { placeContext, placeLabel, placeShort } from "../lib/place"
-import type { NameEntry, PublicPuzzle } from "../lib/types"
+import type { GuessFeedback, NameEntry, Place, PublicPuzzle } from "../lib/types"
 
 interface PuzzleBoardProps {
   puzzle: PublicPuzzle
@@ -156,6 +155,12 @@ export function PuzzleBoard({
     </div>
   )
 
+  // After finishing, the full per-attribute cards are replaced by a compact
+  // recap: each guess as name + attempt number, with the winning guess in green.
+  const guessSummary = puzzle.guesses.length > 0 && (
+    <GuessSummary guesses={puzzle.guesses} />
+  )
+
   // Finished (non-rapid): lead with the result + share so they're in view
   // without scrolling; the map and clues slide down below the guesses.
   if (puzzle.finished && puzzle.reveal && !compact) {
@@ -163,7 +168,7 @@ export function PuzzleBoard({
       <div className="flex flex-col gap-5">
         <Reveal puzzle={puzzle} />
         {share}
-        {guessList}
+        {guessSummary}
         <div className="flex flex-col gap-5 border-t border-border pt-5 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-500">
           <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
             The puzzle
@@ -205,7 +210,7 @@ export function PuzzleBoard({
         </>
       )}
 
-      {guessList}
+      {puzzle.finished && puzzle.reveal ? guessSummary : guessList}
     </div>
   )
 }
@@ -260,63 +265,130 @@ function GuessDots({ used, total }: { used: number; total: number }) {
   )
 }
 
+function GuessSummary({ guesses }: { guesses: GuessFeedback[] }) {
+  return (
+    <ol className="flex flex-col gap-1.5">
+      {guesses.map((g, i) => (
+        <li
+          key={`${g.id}-${i}`}
+          className={cn(
+            "flex items-center gap-3 rounded-lg border px-3 py-2",
+            g.correct ? "border-primary/40 bg-primary/5" : "border-border bg-card"
+          )}
+        >
+          <span
+            className={cn(
+              "flex size-6 shrink-0 items-center justify-center rounded-md text-xs font-semibold tabular-nums",
+              g.correct
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted text-muted-foreground"
+            )}
+          >
+            {i + 1}
+          </span>
+          <span
+            className={cn(
+              "min-w-0 flex-1 truncate font-heading text-base font-semibold",
+              g.correct ? "text-primary" : "text-foreground"
+            )}
+          >
+            {g.name}
+          </span>
+          {g.correct && <Check className="size-4 shrink-0 text-primary" />}
+        </li>
+      ))}
+    </ol>
+  )
+}
+
 function Reveal({ puzzle }: { puzzle: PublicPuzzle }) {
   const r = puzzle.reveal!
+  const hasDeath = Boolean(r.dod && r.death)
   return (
     <div
       className={cn(
-        "flex gap-4 rounded-xl border p-4 motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 motion-safe:duration-500",
-        puzzle.solved
-          ? "border-success/40 bg-success/5"
-          : "border-border bg-muted/40"
+        "relative flex flex-col gap-4 rounded-xl border p-4 motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 motion-safe:duration-500",
+        puzzle.solved ? "border-primary/40 bg-primary/5" : "border-border bg-muted/40"
       )}
     >
-      {r.image && (
-        <img
-          src={r.image}
-          alt={r.name}
-          loading="lazy"
-          className="size-20 shrink-0 rounded-lg object-cover"
-        />
-      )}
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
+      <a
+        href={r.wikipedia}
+        target="_blank"
+        rel="noreferrer"
+        aria-label={`${r.name} on Wikipedia`}
+        title="View on Wikipedia"
+        className="absolute top-3 right-3 inline-flex size-8 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ExternalLink className="size-4" />
+      </a>
+      <div className="flex gap-4">
+        {r.image && (
+          <img
+            src={r.image}
+            alt={r.name}
+            loading="lazy"
+            className="size-20 shrink-0 rounded-lg object-cover"
+          />
+        )}
+        <div className="min-w-0 flex-1 pr-10">
           <span
             className={cn(
               "text-xs font-semibold tracking-wide uppercase",
-              puzzle.solved ? "text-success" : "text-muted-foreground"
+              puzzle.solved ? "text-primary" : "text-muted-foreground"
             )}
           >
-            {puzzle.solved
-              ? `Solved in ${puzzle.guesses.length}`
-              : "Out of guesses"}
+            {puzzle.solved ? `Solved in ${puzzle.guesses.length}` : "Out of guesses"}
           </span>
-        </div>
-        <h3 className="font-heading text-xl leading-tight font-semibold">{r.name}</h3>
-        {r.description && (
-          <p className="text-sm text-muted-foreground">{r.description}</p>
-        )}
-        <div className="mt-2 flex flex-col gap-1 text-sm">
-          <span className="flex items-start gap-2">
-            <Sprout className="mt-0.5 size-3.5 shrink-0 text-born" />
-            <span>
-              {formatGameDate(r.dob)} · {placeLabel(r.birth)}
-            </span>
-          </span>
-          {r.dod && r.death && (
-            <span className="flex items-start gap-2">
-              <Skull className="mt-0.5 size-3.5 shrink-0 text-died" />
-              <span>
-                {formatGameDate(r.dod)} · {placeLabel(r.death)}
-              </span>
-            </span>
+          <h3 className="font-heading text-xl leading-tight font-semibold">{r.name}</h3>
+          {r.description && (
+            <p className="text-sm text-muted-foreground">{r.description}</p>
           )}
         </div>
-        <Button asChild variant="outline" size="sm" className="mt-3">
-          <a href={r.wikipedia} target="_blank" rel="noreferrer">
-            Wikipedia <ExternalLink />
-          </a>
-        </Button>
+      </div>
+      <div className={cn("grid gap-3", hasDeath ? "grid-cols-2" : "grid-cols-1")}>
+        <VitalStat tone="born" label="Born" date={formatGameDate(r.dob)} place={r.birth} />
+        {hasDeath && (
+          <VitalStat
+            tone="died"
+            label="Died"
+            date={formatGameDate(r.dod!)}
+            place={r.death!}
+          />
+        )}
+      </div>
+    </div>
+  )
+}
+
+function VitalStat({
+  tone,
+  label,
+  date,
+  place,
+}: {
+  tone: "born" | "died"
+  label: string
+  date: string
+  place: Place
+}) {
+  const short = placeShort(place)
+  return (
+    <div className="rounded-lg border border-border bg-card p-3">
+      <div className="flex items-center gap-1.5 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+        <span
+          className={cn("size-2 rounded-full", tone === "born" ? "bg-born" : "bg-died")}
+        />
+        {label}
+      </div>
+      <div className="mt-1 font-heading text-lg leading-tight font-bold sm:text-xl">
+        {date}
+      </div>
+      <div
+        className="mt-0.5 flex items-center gap-1 text-sm text-muted-foreground"
+        title={placeLabel(place)}
+      >
+        <span className="truncate">{short.text}</span>
+        {short.flag && <span className="shrink-0">{short.flag}</span>}
       </div>
     </div>
   )

@@ -21,3 +21,8 @@ npm-debug.log*
 pnpm-debug.log*
 
 bun.lock
+
+videos/
+
+.agents/
+.claude/
