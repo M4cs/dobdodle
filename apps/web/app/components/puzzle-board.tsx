@@ -18,6 +18,8 @@ interface PuzzleBoardProps {
   pending?: boolean
   compact?: boolean // rapid mode: single guess, tighter layout
   autoFocus?: boolean
+  /** Rendered right under the result card when finished (e.g. a share button). */
+  share?: React.ReactNode
 }
 
 export function PuzzleBoard({
@@ -27,6 +29,7 @@ export function PuzzleBoard({
   pending,
   compact,
   autoFocus,
+  share,
 }: PuzzleBoardProps) {
   const points = useMemo<MapPoint[]>(() => {
     const pts: MapPoint[] = []
@@ -97,49 +100,87 @@ export function PuzzleBoard({
   )
   const remaining = puzzle.maxGuesses - puzzle.guesses.length
 
+  const categoryHint = (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+        Category
+      </span>
+      {(puzzle.categories ?? []).length > 0 ? (
+        (puzzle.categories ?? []).map((c) => (
+          <span
+            key={c}
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-sm font-medium"
+          >
+            <span aria-hidden>{categoryEmoji(c)}</span>
+            {c}
+          </span>
+        ))
+      ) : (
+        <span className="rounded-full border border-border bg-card px-3 py-1 text-sm font-medium text-muted-foreground">
+          Unknown
+        </span>
+      )}
+    </div>
+  )
+
+  const dateStats = (
+    <div className="grid grid-cols-2 gap-3">
+      <DateStat tone="born" label="Born" date={puzzle.dobDisplay} point={puzzle.birth} />
+      {puzzle.death && puzzle.dodDisplay && (
+        <DateStat
+          tone="died"
+          label="Died"
+          date={puzzle.dodDisplay}
+          point={puzzle.death}
+        />
+      )}
+    </div>
+  )
+
+  const mapBlock = (
+    <div className="overflow-hidden rounded-2xl border border-border shadow-sm">
+      <WorldMap points={points} connect />
+      {!puzzle.finished && (
+        <p className="border-t border-border bg-card px-3 py-2 text-center text-xs text-muted-foreground">
+          Drag to pan · scroll or pinch to zoom · tap a marker for details
+        </p>
+      )}
+    </div>
+  )
+
+  const guessList = puzzle.guesses.length > 0 && (
+    <div className="flex flex-col gap-1.5">
+      {[...puzzle.guesses].reverse().map((g, i) => (
+        <GuessRow key={`${g.id}-${i}`} g={g} />
+      ))}
+    </div>
+  )
+
+  // Finished (non-rapid): lead with the result + share so they're in view
+  // without scrolling; the map and clues slide down below the guesses.
+  if (puzzle.finished && puzzle.reveal && !compact) {
+    return (
+      <div className="flex flex-col gap-5">
+        <Reveal puzzle={puzzle} />
+        {share}
+        {guessList}
+        <div className="flex flex-col gap-5 border-t border-border pt-5 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-500">
+          <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+            The puzzle
+          </span>
+          {categoryHint}
+          {dateStats}
+          {mapBlock}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-          Category
-        </span>
-        {(puzzle.categories ?? []).length > 0 ? (
-          (puzzle.categories ?? []).map((c) => (
-            <span
-              key={c}
-              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-sm font-medium"
-            >
-              <span aria-hidden>{categoryEmoji(c)}</span>
-              {c}
-            </span>
-          ))
-        ) : (
-          <span className="rounded-full border border-border bg-card px-3 py-1 text-sm font-medium text-muted-foreground">
-            Unknown
-          </span>
-        )}
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <DateStat tone="born" label="Born" date={puzzle.dobDisplay} point={puzzle.birth} />
-        {puzzle.death && puzzle.dodDisplay && (
-          <DateStat
-            tone="died"
-            label="Died"
-            date={puzzle.dodDisplay}
-            point={puzzle.death}
-          />
-        )}
-      </div>
-
-      <div className="overflow-hidden rounded-2xl border border-border shadow-sm">
-        <WorldMap points={points} connect />
-        {!puzzle.finished && (
-          <p className="border-t border-border bg-card px-3 py-2 text-center text-xs text-muted-foreground">
-            Drag to pan · scroll or pinch to zoom · tap a marker for details
-          </p>
-        )}
-      </div>
+      {categoryHint}
+      {dateStats}
+      {mapBlock}
 
       {puzzle.finished && puzzle.reveal ? (
         <Reveal puzzle={puzzle} />
@@ -158,21 +199,13 @@ export function PuzzleBoard({
             excludeIds={excludeIds}
             autoFocus={autoFocus}
             placeholder={
-              compact
-                ? "One guess — who is it?"
-                : `Guess who… (${remaining} left)`
+              compact ? "One guess — who is it?" : `Guess who… (${remaining} left)`
             }
           />
         </>
       )}
 
-      {puzzle.guesses.length > 0 && (
-        <div className="flex flex-col gap-1.5">
-          {[...puzzle.guesses].reverse().map((g, i) => (
-            <GuessRow key={`${g.id}-${i}`} g={g} />
-          ))}
-        </div>
-      )}
+      {guessList}
     </div>
   )
 }

@@ -1,0 +1,18 @@
+{
+  "name": "dobdodle — guess the famous person",
+  "short_name": "dobdodle",
+  "description": "A daily browser game: name the famous person from their birthplace, place of death, and dates.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "categories": ["games", "education", "trivia"],
+  "icons": [
+    {
+      "src": "/embed.webp",
+      "sizes": "any",
+      "type": "image/webp"
+    }
+  ]
+}

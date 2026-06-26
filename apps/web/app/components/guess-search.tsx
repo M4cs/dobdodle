@@ -74,13 +74,25 @@ export function GuessSearch({
         <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           ref={inputRef}
+          type="search"
+          name="dobdodle-guess"
           value={query}
           autoFocus={autoFocus}
           disabled={disabled}
           placeholder={placeholder}
-          className="h-11 pl-9 text-base"
+          className="h-11 pl-9 text-base [&::-webkit-search-cancel-button]:hidden"
+          // Stop iOS Safari from offering credit-card / contact autofill on this
+          // search box. type="search" + an unrecognized autocomplete token is the
+          // combination that reliably suppresses it.
           autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="none"
           spellCheck={false}
+          inputMode="search"
+          enterKeyHint="search"
+          data-lpignore="true"
+          data-1p-ignore=""
+          data-form-type="other"
           onChange={(e) => {
             setQuery(e.target.value)
             setOpen(true)

@@ -65,27 +65,25 @@ export function DailyScreen({ data }: { data: GameData }) {
         pending={pending}
         autoFocus
         onGuess={(id) => guess(puzzle.token, id)}
+        share={
+          <div className="flex flex-col items-center gap-3">
+            <ShareButton
+              getText={() => shareDaily(puzzle, data.category, data.key)}
+            />
+            <p className="text-center text-sm text-muted-foreground">
+              That’s today’s puzzle — come back tomorrow, or try{" "}
+              <a className="font-medium text-foreground underline" href="/unlimited">
+                Unlimited
+              </a>{" "}
+              and{" "}
+              <a className="font-medium text-foreground underline" href="/rapid">
+                Rapid
+              </a>
+              .
+            </p>
+          </div>
+        }
       />
-      {puzzle.finished && (
-        <div className="mt-6 flex justify-center">
-          <ShareButton
-            getText={() => shareDaily(puzzle, data.category, data.key)}
-          />
-        </div>
-      )}
-      {puzzle.finished && (
-        <p className="mt-5 text-center text-sm text-muted-foreground">
-          That’s today’s puzzle — come back tomorrow, or try{" "}
-          <a className="font-medium text-foreground underline" href="/unlimited">
-            Unlimited
-          </a>{" "}
-          and{" "}
-          <a className="font-medium text-foreground underline" href="/rapid">
-            Rapid
-          </a>
-          .
-        </p>
-      )}
       {puzzle.finished && (
         <div className="mt-8 border-t border-border pt-6">
           <h2 className="mb-3 px-0.5 text-sm font-medium text-muted-foreground">
