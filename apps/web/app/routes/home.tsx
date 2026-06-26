@@ -152,6 +152,15 @@ export default function Home({ loaderData }: Route.ComponentProps) {
             Data from Wikipedia &amp; Wikidata, ranked by page views. Built with
             React Router.
           </p>
+          <p>
+            <Link
+              to="/privacy"
+              viewTransition
+              className="font-medium text-foreground underline underline-offset-2"
+            >
+              Privacy
+            </Link>
+          </p>
         </footer>
       </main>
     </div>

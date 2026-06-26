@@ -5,6 +5,7 @@ export default [
   route("daily", "routes/daily.tsx"),
   route("unlimited", "routes/unlimited.tsx"),
   route("rapid", "routes/rapid.tsx"),
+  route("privacy", "routes/privacy.tsx"),
   route("api/guess", "routes/api.guess.tsx"),
   route("robots.txt", "routes/robots.tsx"),
   route("sitemap.xml", "routes/sitemap.tsx"),

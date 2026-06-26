@@ -45,6 +45,13 @@ When a game ends, a **Share** button copies a spoiler-free, Wordle-style result
 (a grid of 🟩/⬜ squares — one per attribute match — plus a link) using the
 native share sheet on mobile and the clipboard elsewhere.
 
+When you finish the daily, you also see your **percentile** ("you finished ahead
+of X% of today's players"). This is the only data we persist, and it is fully
+anonymous — each row stores just the date, category and score, with nothing that
+links back to a player (see `/privacy`). It needs a Postgres `DATABASE_URL`
+(provided automatically on Railway); without one the game runs unchanged and the
+percentile is hidden.
+
 ## Anti-cheat design
 
 The answer is never sent to the browser.

@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react"
 import { useFetcher } from "react-router"
-import type { PublicPuzzle } from "../lib/types"
+import type { DailyStats, PublicPuzzle } from "../lib/types"
 
 interface GuessResponse {
   ok: boolean
   error?: string
   puzzle?: PublicPuzzle
+  stats?: DailyStats
 }
 
 /**
@@ -38,5 +39,6 @@ export function useGuessing(initial: PublicPuzzle[]) {
     guess,
     pending: fetcher.state !== "idle",
     justResolved: fetcher.state === "idle" ? fetcher.data?.puzzle : undefined,
+    stats: fetcher.data?.stats,
   }
 }

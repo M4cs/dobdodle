@@ -34,6 +34,14 @@ export interface Person {
 
 export type GameMode = "daily" | "unlimited" | "rapid"
 
+/** Anonymous daily-result standing shown after a daily finishes. */
+export interface DailyStats {
+  beatPct: number // % of today's players you finished ahead of
+  total: number // players who have finished today's puzzle
+  yourGuesses: number
+  solved: boolean
+}
+
 export interface NamedPoint {
   lat: number
   lon: number

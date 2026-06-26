@@ -6,6 +6,7 @@ const PAGES: Array<{ path: string; priority: string; changefreq: string }> = [
   { path: "/daily", priority: "0.9", changefreq: "daily" },
   { path: "/unlimited", priority: "0.8", changefreq: "weekly" },
   { path: "/rapid", priority: "0.8", changefreq: "weekly" },
+  { path: "/privacy", priority: "0.3", changefreq: "yearly" },
 ]
 
 export function loader({ request }: Route.LoaderArgs) {

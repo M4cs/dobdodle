@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { Trophy } from "lucide-react"
 import { CategoryBar } from "./category-bar"
 import { GameShell } from "./game-shell"
 import { PuzzleBoard } from "./puzzle-board"
@@ -6,7 +7,34 @@ import { ShareButton } from "./share-button"
 import { useGuessing } from "./use-guessing"
 import { shareDaily } from "../lib/share"
 import type { GameData } from "../lib/play.server"
-import type { PublicPuzzle } from "../lib/types"
+import type { DailyStats, PublicPuzzle } from "../lib/types"
+
+function PercentileCard({ stats }: { stats: DailyStats }) {
+  const { beatPct, total, solved } = stats
+  return (
+    <div className="flex w-full max-w-sm items-center gap-3 rounded-xl border border-border bg-card px-4 py-3">
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-success/15 text-success">
+        <Trophy className="size-5" />
+      </span>
+      <div className="min-w-0 text-sm">
+        {total <= 1 ? (
+          <p className="font-medium">
+            You’re the first to finish today’s puzzle!
+          </p>
+        ) : (
+          <p>
+            <span className="font-semibold">
+              {solved ? `Top ${Math.max(1, 100 - beatPct)}%` : "Tough one today"}
+            </span>{" "}
+            — you finished ahead of{" "}
+            <span className="font-semibold text-foreground">{beatPct}%</span> of{" "}
+            {total.toLocaleString()} players today.
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}
 
 function prettyDate(key: string): string {
   const [y, m, d] = key.split("-").map(Number)
@@ -19,8 +47,9 @@ function prettyDate(key: string): string {
 }
 
 export function DailyScreen({ data }: { data: GameData }) {
-  const { puzzles, guess, pending } = useGuessing(data.puzzles)
+  const { puzzles, guess, pending, stats: liveStats } = useGuessing(data.puzzles)
   const serverPuzzle = puzzles[0]
+  const stats = liveStats ?? data.stats
 
   // Persist the daily result locally so it survives even if the server cookie
   // is cleared: you can't replay a finished daily, and in-progress state is
@@ -67,6 +96,7 @@ export function DailyScreen({ data }: { data: GameData }) {
         onGuess={(id) => guess(puzzle.token, id)}
         share={
           <div className="flex flex-col items-center gap-3">
+            {stats && <PercentileCard stats={stats} />}
             <ShareButton
               getText={() => shareDaily(puzzle, data.category, data.key)}
             />

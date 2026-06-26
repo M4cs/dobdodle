@@ -11,7 +11,8 @@ import {
   applyGuess,
 } from "./game.server"
 import { commitSession, getSession, readGuesses, writeGuesses } from "./session.server"
-import type { GameMode, NameEntry, PublicPuzzle } from "./types"
+import { dailyPercentile, recordDailyScore, scoreFor } from "./db.server"
+import type { DailyStats, GameMode, NameEntry, PublicPuzzle } from "./types"
 
 export interface GameData {
   mode: GameMode
@@ -21,6 +22,24 @@ export interface GameData {
   seed: string | null
   puzzles: PublicPuzzle[]
   names: NameEntry[]
+  stats?: DailyStats // daily only, once finished
+}
+
+// Percentile standing for a finished daily puzzle (read-only).
+async function dailyStats(
+  day: string,
+  category: string,
+  puzzle: PublicPuzzle
+): Promise<DailyStats | undefined> {
+  const score = scoreFor(puzzle.guesses.length, puzzle.solved, puzzle.maxGuesses)
+  const pct = await dailyPercentile(day, category, score)
+  if (!pct) return undefined
+  return {
+    beatPct: pct.beatPct,
+    total: pct.total,
+    yourGuesses: puzzle.guesses.length,
+    solved: puzzle.solved,
+  }
 }
 
 // How many puzzles to prepare up front per mode.
@@ -60,6 +79,11 @@ export async function loadGame(
     puzzles.push(buildPuzzle(t, readGuesses(session, gameIdOf(t), slot)))
   }
 
+  const stats =
+    mode === "daily" && puzzles[0]?.finished
+      ? await dailyStats(key, category, puzzles[0])
+      : undefined
+
   return {
     mode,
     category,
@@ -68,6 +92,7 @@ export async function loadGame(
     seed,
     puzzles,
     names: nameIndex(),
+    stats,
   }
 }
 
@@ -75,6 +100,7 @@ export interface GuessResult {
   ok: boolean
   error?: string
   puzzle?: PublicPuzzle
+  stats?: DailyStats
 }
 
 /** Validate + record a guess server-side; returns the updated puzzle + cookie. */
@@ -96,8 +122,20 @@ export async function submitGuess(
     return { result: { ok: false, error: "Guess not accepted.", puzzle } }
   }
   writeGuesses(session, gameId, t.slot, guesses)
+
+  // Record the anonymous daily result once per session, then report standing.
+  let stats: DailyStats | undefined
+  if (t.mode === "daily" && puzzle.finished) {
+    const scored = (session.get("scored") ?? []) as string[]
+    if (!scored.includes(gameId)) {
+      await recordDailyScore(t.key, t.category, puzzle.guesses.length, puzzle.solved)
+      session.set("scored", [...scored, gameId].slice(-60))
+    }
+    stats = await dailyStats(t.key, t.category, puzzle)
+  }
+
   return {
-    result: { ok: true, puzzle },
+    result: { ok: true, puzzle, stats },
     headers: { "Set-Cookie": await commitSession(session) },
   }
 }
