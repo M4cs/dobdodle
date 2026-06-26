@@ -5,6 +5,20 @@ import type { Route } from "./+types/home"
 import { SiteHeader } from "../components/site-header"
 import { WorldMap } from "../components/world-map"
 import { CATEGORIES } from "../lib/dataset.server"
+import { originFromMatches, pageMeta, videoGameSchema } from "../lib/seo"
+
+export function meta({ matches }: Route.MetaArgs) {
+  const origin = originFromMatches(matches)
+  return [
+    ...pageMeta({
+      origin,
+      path: "/",
+      description:
+        "Play dobdodle — a daily browser game where you name a famous person from their birthplace, place of death, and the dates, with Wordle-style clues on a world map.",
+    }),
+    { "script:ld+json": videoGameSchema(origin) },
+  ]
+}
 
 const CATEGORY_ICONS: Record<string, string> = {
   "Actors & Film": "🎬",

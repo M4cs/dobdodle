@@ -10,6 +10,15 @@ import {
 import type { Route } from "./+types/root"
 import "@workspace/ui/globals.css"
 import { themeInitScript } from "./components/theme-toggle"
+import { originFromMatches, pageMeta, siteOrigin } from "./lib/seo"
+
+export function loader({ request }: Route.LoaderArgs) {
+  return { origin: siteOrigin(request) }
+}
+
+export function meta({ matches, location }: Route.MetaArgs) {
+  return pageMeta({ origin: originFromMatches(matches), path: location.pathname })
+}
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -17,28 +26,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>dobdodle — guess the famous person</title>
         <meta
-          name="description"
-          content="A daily geography guessing game. From a birthplace, a resting place, and two dates, name the famous person."
+          name="theme-color"
+          media="(prefers-color-scheme: light)"
+          content="#ffffff"
         />
-        {/* Social embed (Open Graph + Twitter) */}
-        <meta property="og:type" content="website" />
-        <meta property="og:site_name" content="dobdodle" />
-        <meta property="og:title" content="dobdodle — guess the famous person" />
         <meta
-          property="og:description"
-          content="A daily geography guessing game. From a birthplace, a resting place, and two dates, name the famous person."
+          name="theme-color"
+          media="(prefers-color-scheme: dark)"
+          content="#0a0a0a"
         />
-        <meta property="og:image" content="/embed.webp" />
-        <meta property="og:image:type" content="image/webp" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="dobdodle — guess the famous person" />
-        <meta
-          name="twitter:description"
-          content="A daily geography guessing game. From a birthplace, a resting place, and two dates, name the famous person."
-        />
-        <meta name="twitter:image" content="/embed.webp" />
+        <link rel="icon" href="/embed.webp" type="image/webp" />
+        <link rel="apple-touch-icon" href="/embed.webp" />
+        <link rel="manifest" href="/site.webmanifest" />
         <Meta />
         <Links />
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
