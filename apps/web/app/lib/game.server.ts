@@ -9,6 +9,7 @@ import {
   BY_ID,
   dailyPool,
   isValidCategory,
+  makeHint,
   PEOPLE,
   pool,
 } from "./dataset.server"
@@ -244,7 +245,11 @@ function toReveal(p: Person): Reveal {
 }
 
 // ---- public puzzle view -----------------------------------------------------
-export function buildPuzzle(t: TokenData, guessedIds: string[]): PublicPuzzle {
+export function buildPuzzle(
+  t: TokenData,
+  guessedIds: string[],
+  forfeited = false
+): PublicPuzzle {
   const answer = resolveAnswer(t.mode, t.key, t.category, t.slot)
   const max = MAX_GUESSES[t.mode]
   const guesses = guessedIds
@@ -252,7 +257,8 @@ export function buildPuzzle(t: TokenData, guessedIds: string[]): PublicPuzzle {
     .filter((p): p is Person => Boolean(p))
     .map((g) => evaluateGuess(answer, g))
   const solved = guesses.some((g) => g.correct)
-  const finished = solved || guesses.length >= max
+  const revealed = forfeited && !solved
+  const finished = solved || revealed || guesses.length >= max
 
   return {
     token: encodeToken(t),
@@ -277,10 +283,12 @@ export function buildPuzzle(t: TokenData, guessedIds: string[]): PublicPuzzle {
     dobDisplay: formatGameDate(answer.dob),
     dodDisplay: answer.dod ? formatGameDate(answer.dod) : null,
     categories: answer.categories,
+    hint: makeHint(answer.description) || null,
     maxGuesses: max,
     guesses,
     solved,
     finished,
+    revealed,
     reveal: finished ? toReveal(answer) : null,
   }
 }

@@ -11,7 +11,7 @@ import { shareUnlimited } from "../lib/share"
 import type { GameData } from "../lib/play.server"
 
 export function UnlimitedScreen({ data }: { data: GameData }) {
-  const { puzzles, guess, pending } = useGuessing(data.puzzles)
+  const { puzzles, guess, reveal, pending } = useGuessing(data.puzzles)
   const [index, setIndex] = useState(0)
   const navigate = useNavigate()
   const [params] = useSearchParams()
@@ -66,6 +66,7 @@ export function UnlimitedScreen({ data }: { data: GameData }) {
         pending={pending}
         autoFocus
         onGuess={(id) => guess(current.token, id)}
+        onReveal={(token) => reveal(token)}
       />
 
       <div className="mt-5 flex items-center justify-between gap-3">

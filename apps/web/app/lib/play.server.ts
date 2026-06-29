@@ -10,7 +10,14 @@ import {
   SLOTS,
   applyGuess,
 } from "./game.server"
-import { commitSession, getSession, readGuesses, writeGuesses } from "./session.server"
+import {
+  commitSession,
+  getSession,
+  readForfeit,
+  readGuesses,
+  writeForfeit,
+  writeGuesses,
+} from "./session.server"
 import { dailyPercentile, recordDailyScore, scoreFor } from "./db.server"
 import type { DailyStats, GameMode, NameEntry, PublicPuzzle } from "./types"
 
@@ -76,7 +83,10 @@ export async function loadGame(
   const puzzles: PublicPuzzle[] = []
   for (let slot = 0; slot < count && slot < SLOTS[mode]; slot++) {
     const t = { mode, key, category, slot }
-    puzzles.push(buildPuzzle(t, readGuesses(session, gameIdOf(t), slot)))
+    const gameId = gameIdOf(t)
+    puzzles.push(
+      buildPuzzle(t, readGuesses(session, gameId, slot), readForfeit(session, gameId, slot))
+    )
   }
 
   const stats =
@@ -136,6 +146,32 @@ export async function submitGuess(
 
   return {
     result: { ok: true, puzzle, stats },
+    headers: { "Set-Cookie": await commitSession(session) },
+  }
+}
+
+/**
+ * Give up on a puzzle: mark it forfeited server-side and return the finished
+ * puzzle (with the reveal). Used by Unlimited's "Reveal answer" so players can
+ * move on without burning all five guesses. Never allowed for the daily, whose
+ * shared standings must stay guess-only.
+ */
+export async function revealPuzzle(
+  request: Request
+): Promise<{ result: GuessResult; headers?: HeadersInit }> {
+  const form = await request.formData()
+  const token = String(form.get("token") ?? "")
+  const t = decodeToken(token)
+  if (!t || t.mode === "daily") return { result: { ok: false, error: "Invalid puzzle." } }
+
+  const session = await getSession(request.headers.get("Cookie"))
+  const gameId = gameIdOf(t)
+  const prev = readGuesses(session, gameId, t.slot)
+  writeForfeit(session, gameId, t.slot)
+  const puzzle = buildPuzzle(t, prev, true)
+
+  return {
+    result: { ok: true, puzzle },
     headers: { "Set-Cookie": await commitSession(session) },
   }
 }

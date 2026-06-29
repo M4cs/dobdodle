@@ -60,10 +60,12 @@ export interface PublicPuzzle {
   dobDisplay: string
   dodDisplay: string | null
   categories: string[] // the answer's categories, shown as a starting hint
+  hint: string | null // one-line role hint, revealed on demand (never the name)
   maxGuesses: number
   guesses: GuessFeedback[]
   solved: boolean
   finished: boolean
+  revealed: boolean // finished because the player gave up / asked to reveal
   reveal: Reveal | null
 }
 

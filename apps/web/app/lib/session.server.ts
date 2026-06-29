@@ -18,6 +18,8 @@ export const { getSession, commitSession } = createCookieSessionStorage({
 
 // session shape: { games: { [gameId]: { [slot: number]: string[] /* guessed ids */ } } }
 type Games = Record<string, Record<string, string[]>>
+// Slots the player gave up on (revealed the answer instead of guessing it out).
+type Forfeits = Record<string, Record<string, boolean>>
 
 const MAX_TRACKED_GAMES = 40
 
@@ -46,4 +48,29 @@ export function writeGuesses(
     for (const k of keys.slice(0, keys.length - MAX_TRACKED_GAMES)) delete games[k]
   }
   session.set("games", games)
+}
+
+export function readForfeit(
+  session: Awaited<ReturnType<typeof getSession>>,
+  gameId: string,
+  slot: number
+): boolean {
+  const f = (session.get("forfeits") ?? {}) as Forfeits
+  return Boolean(f[gameId]?.[String(slot)])
+}
+
+export function writeForfeit(
+  session: Awaited<ReturnType<typeof getSession>>,
+  gameId: string,
+  slot: number
+): void {
+  const f = { ...((session.get("forfeits") ?? {}) as Forfeits) }
+  const game = { ...(f[gameId] ?? {}) }
+  game[String(slot)] = true
+  f[gameId] = game
+  const keys = Object.keys(f)
+  if (keys.length > MAX_TRACKED_GAMES) {
+    for (const k of keys.slice(0, keys.length - MAX_TRACKED_GAMES)) delete f[k]
+  }
+  session.set("forfeits", f)
 }

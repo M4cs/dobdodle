@@ -7,6 +7,7 @@ export default [
   route("rapid", "routes/rapid.tsx"),
   route("privacy", "routes/privacy.tsx"),
   route("api/guess", "routes/api.guess.tsx"),
+  route("api/reveal", "routes/api.reveal.tsx"),
   route("robots.txt", "routes/robots.tsx"),
   route("sitemap.xml", "routes/sitemap.tsx"),
   route("llms.txt", "routes/llms.tsx"),

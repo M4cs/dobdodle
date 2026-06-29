@@ -52,6 +52,37 @@ function sanitizeHint(desc: string): string {
     .trim()
 }
 
+// Relational tails like "co-founder of Apple", "member of the Grateful Dead" or
+// "father of Donald Trump" name a closely-linked famous entity — keeping them
+// would give the answer away. Strip them so the hint only describes the role.
+const RELATIONAL_TAIL =
+  /[,;]?\s*\b(?:co-?)?(?:founder|member|wife|husband|widow|son|daughter|father|mother|brother|sister|sibling|parent|partner|niece|nephew|cousin|heir|consort|mistress|lover|aide|manager|coach|protege|protégé|disciple|student|teacher|mentor)\b\s+(?:of|to)\b.*/i
+
+// Strip dangling punctuation / prepositions / articles left at the end after the
+// year ranges and tails have been removed (e.g. "…Hungary from to" -> "…Hungary").
+function trimTail(s: string): string {
+  let prev = ""
+  while (prev !== s) {
+    prev = s
+    s = s
+      .replace(/[\s,;:–-]+$/g, "")
+      .replace(/\s+\b(?:in|of|at|on|for|from|to|the|a|an|and|with)$/i, "")
+  }
+  return s
+}
+
+/**
+ * A single short hint that points toward the answer's occupation/role without
+ * naming them or any tightly-linked figure. Built from the Wikidata short
+ * description: drop a trailing "; …" clause and any relational "<rel> of X" tail.
+ */
+export function makeHint(description: string): string {
+  let s = sanitizeHint(description)
+  s = s.split(";")[0] // "American entrepreneur; co-founder of Apple Inc." -> first clause
+  s = s.replace(RELATIONAL_TAIL, "")
+  return trimTail(s.replace(/\s{2,}/g, " ").trim())
+}
+
 let nameIndexCache: NameEntry[] | null = null
 
 /** id + name + safe hint for the client autocomplete. No dates/coords. */

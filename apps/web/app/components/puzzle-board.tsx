@@ -1,5 +1,5 @@
-import { useMemo } from "react"
-import { Check, ExternalLink } from "lucide-react"
+import { useMemo, useState } from "react"
+import { Check, ExternalLink, Eye, Lightbulb } from "lucide-react"
 import { cn } from "@workspace/ui/lib/utils"
 import { GuessRow } from "./guess-row"
 import { GuessSearch } from "./guess-search"
@@ -19,6 +19,12 @@ interface PuzzleBoardProps {
   autoFocus?: boolean
   /** Rendered right under the result card when finished (e.g. a share button). */
   share?: React.ReactNode
+  /** Give up on this puzzle and reveal the answer (Unlimited). */
+  onReveal?: (token: string) => void
+  /** Fired the first time the hint is shown (e.g. Rapid docks the clock). */
+  onHintShown?: () => void
+  /** Small note on the hint button, e.g. "−5s" in Rapid. */
+  hintCostNote?: string
 }
 
 export function PuzzleBoard({
@@ -29,7 +35,17 @@ export function PuzzleBoard({
   compact,
   autoFocus,
   share,
+  onReveal,
+  onHintShown,
+  hintCostNote,
 }: PuzzleBoardProps) {
+  const [hintShown, setHintShown] = useState(false)
+
+  function revealHint() {
+    if (hintShown) return
+    setHintShown(true)
+    onHintShown?.()
+  }
   const points = useMemo<MapPoint[]>(() => {
     const pts: MapPoint[] = []
     const b = puzzle.birth
@@ -207,6 +223,16 @@ export function PuzzleBoard({
               compact ? "One guess — who is it?" : `Guess who… (${remaining} left)`
             }
           />
+          {(puzzle.hint || onReveal) && (
+            <HintBar
+              hint={puzzle.hint}
+              shown={hintShown}
+              costNote={hintCostNote}
+              onShow={revealHint}
+              onReveal={onReveal ? () => onReveal(puzzle.token) : undefined}
+              revealPending={pending}
+            />
+          )}
         </>
       )}
 
@@ -245,6 +271,53 @@ function DateStat({
         <span className="truncate">{place.text}</span>
         {place.flag && <span className="shrink-0">{place.flag}</span>}
       </div>
+    </div>
+  )
+}
+
+function HintBar({
+  hint,
+  shown,
+  costNote,
+  onShow,
+  onReveal,
+  revealPending,
+}: {
+  hint: string | null
+  shown: boolean
+  costNote?: string
+  onShow: () => void
+  onReveal?: () => void
+  revealPending?: boolean
+}) {
+  const pill =
+    "inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        {hint && !shown && (
+          <button type="button" onClick={onShow} className={pill}>
+            <Lightbulb className="size-4" /> Need a hint?
+            {costNote && <span className="text-xs opacity-70">{costNote}</span>}
+          </button>
+        )}
+        {onReveal && (
+          <button
+            type="button"
+            onClick={onReveal}
+            disabled={revealPending}
+            className={pill}
+          >
+            <Eye className="size-4" /> Reveal answer
+          </button>
+        )}
+      </div>
+      {hint && shown && (
+        <div className="flex items-start gap-2 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2.5 text-sm motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-1">
+          <Lightbulb className="mt-0.5 size-4 shrink-0 text-primary" />
+          <span className="text-foreground">{hint}</span>
+        </div>
+      )}
     </div>
   )
 }
@@ -337,7 +410,11 @@ function Reveal({ puzzle }: { puzzle: PublicPuzzle }) {
               puzzle.solved ? "text-primary" : "text-muted-foreground"
             )}
           >
-            {puzzle.solved ? `Solved in ${puzzle.guesses.length}` : "Out of guesses"}
+            {puzzle.solved
+              ? `Solved in ${puzzle.guesses.length}`
+              : puzzle.revealed
+                ? "Revealed"
+                : "Out of guesses"}
           </span>
           <h3 className="font-heading text-xl leading-tight font-semibold">{r.name}</h3>
           {r.description && (

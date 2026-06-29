@@ -34,9 +34,16 @@ export function useGuessing(initial: PublicPuzzle[]) {
     )
   }
 
+  // Give up on a puzzle: the server marks it forfeited and returns the reveal,
+  // which the effect above splices back in by slot.
+  function reveal(token: string) {
+    fetcher.submit({ token }, { method: "post", action: "/api/reveal" })
+  }
+
   return {
     puzzles,
     guess,
+    reveal,
     pending: fetcher.state !== "idle",
     justResolved: fetcher.state === "idle" ? fetcher.data?.puzzle : undefined,
     stats: fetcher.data?.stats,

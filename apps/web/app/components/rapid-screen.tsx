@@ -98,6 +98,8 @@ export function RapidScreen({ data }: { data: GameData }) {
             compact
             autoFocus
             onGuess={(id) => guess(current.token, id)}
+            hintCostNote="−5s"
+            onHintShown={() => setTimeLeft((s) => Math.max(0, s - 5))}
           />
         </div>
       )}
