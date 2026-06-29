@@ -44,6 +44,28 @@ const COUNTRY_ISO: Array<[string, string]> = [
   ["Sweden", "SE"], ["Norway", "NO"], ["Denmark", "DK"], ["Finland", "FI"],
   ["Iceland", "IS"], ["Greece", "GR"], ["Poland", "PL"], ["Bohemia", "CZ"],
   ["Czech", "CZ"], ["Hungary", "HU"],
+  // ---- rest of the world (incl. common historical forms) -------------------
+  ["Soviet Union", "RU"], ["Russian Empire", "RU"], ["Russia", "RU"],
+  ["Ukraine", "UA"], ["Romania", "RO"], ["Bulgaria", "BG"], ["Serbia", "RS"],
+  ["Yugoslavia", "RS"], ["Croatia", "HR"], ["Slovakia", "SK"], ["Slovenia", "SI"],
+  ["Lithuania", "LT"], ["Latvia", "LV"], ["Estonia", "EE"],
+  ["China", "CN"], ["Qing", "CN"], ["Taiwan", "TW"], ["Japan", "JP"],
+  ["Korea", "KR"], ["Mongol", "MN"], ["Mongolia", "MN"], ["Vietnam", "VN"],
+  ["Thailand", "TH"], ["Indonesia", "ID"], ["Philippines", "PH"],
+  ["Malaysia", "MY"], ["Singapore", "SG"], ["India", "IN"], ["Pakistan", "PK"],
+  ["Bangladesh", "BD"], ["Sri Lanka", "LK"], ["Afghanistan", "AF"],
+  ["Ottoman", "TR"], ["Turkey", "TR"], ["Türkiye", "TR"],
+  ["Persia", "IR"], ["Iran", "IR"], ["Iraq", "IQ"], ["Israel", "IL"],
+  ["Palestine", "PS"], ["Syria", "SY"], ["Lebanon", "LB"], ["Jordan", "JO"],
+  ["Saudi", "SA"], ["Arabia", "SA"],
+  ["Roman Empire", "IT"], ["Roman Republic", "IT"], ["Ancient Rome", "IT"],
+  ["Byzantine", "GR"], ["Macedon", "GR"],
+  ["Ancient Egypt", "EG"], ["Egypt", "EG"], ["Morocco", "MA"], ["Algeria", "DZ"],
+  ["Tunisia", "TN"], ["Libya", "LY"], ["Nigeria", "NG"], ["Ghana", "GH"],
+  ["Kenya", "KE"], ["Ethiopia", "ET"], ["South Africa", "ZA"], ["Congo", "CD"],
+  ["Mexico", "MX"], ["Brazil", "BR"], ["Argentina", "AR"], ["Chile", "CL"],
+  ["Peru", "PE"], ["Colombia", "CO"], ["Venezuela", "VE"], ["Cuba", "CU"],
+  ["Jamaica", "JM"], ["Haiti", "HT"], ["Bolivia", "BO"], ["Uruguay", "UY"],
 ]
 
 function flagFromIso(iso: string): string {

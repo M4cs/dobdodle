@@ -14,28 +14,14 @@
  * Tune: TARGET, MONTHS below.
  */
 
-const UA = "dobdodle-build/0.2 (engineering@oglabs.dev)"
-const TARGET = 300
-const MIN_BIRTH_YEAR = 1800 // drop pre-1800 figures (too obscure)
+import { scrubPlace } from "./scrub-places"
 
-// Western-world birth countries (incl. common historical forms). Used to keep
-// the dataset to figures a Western audience is likely to recognise.
-const WESTERN = [
-  "United States", "Confederate States", "United Kingdom", "Great Britain",
-  "England", "Scotland", "Wales", "Northern Ireland", "Ireland",
-  "Canada", "Australia", "New Zealand",
-  "France", "French", "Germany", "German", "Prussia", "Bavaria", "Saxony",
-  "Italy", "Italian", "Spain", "Spanish", "Portugal", "Portuguese",
-  "Netherlands", "Dutch", "Holland", "Belgium", "Belgian", "Luxembourg",
-  "Austria", "Austrian", "Switzerland", "Swiss",
-  "Sweden", "Swedish", "Norway", "Norwegian", "Denmark", "Danish",
-  "Finland", "Finnish", "Iceland", "Greece", "Greek",
-  "Poland", "Polish", "Bohemia", "Czech", "Hungary", "Hungarian",
-]
-function isWestern(country?: string): boolean {
-  if (!country) return false
-  return WESTERN.some((k) => country.includes(k))
-}
+const UA = "dobdodle-build/0.2 (engineering@oglabs.dev)"
+// Roster is global and spans all of history: famous figures the world over,
+// from antiquity (Caesar, Cleopatra, Genghis Khan) through explorers (Columbus)
+// to the modern day. Fame is still ranked by English-Wikipedia pageviews, which
+// surfaces globally-recognised names. A deep pool feeds the Hard difficulty.
+const TARGET = 700
 const OUT = new URL("../apps/web/app/data/people.json", import.meta.url).pathname
 
 // ---- months to aggregate pageviews over (YYYY/MM) ----------------------------
@@ -269,11 +255,43 @@ async function fetchLabelMap(qids: string[]): Promise<Map<string, string>> {
 // US (and similar) cities resolve P131 to a county; promote those to the state.
 const COUNTY_SUFFIX = /\b(County|Parish|Census Area|Borough)$/
 
+// instance-of (P31) values that mean "a building/structure", not a settlement.
+// A birth/death place that is one of these is demoted to its containing
+// town/area (P131) so labels never read "Jimmy Carter House" or "Führerbunker".
+const STRUCTURE_CLASSES = new Set<string>([
+  "Q41176", // building
+  "Q3947", // house
+  "Q5773747", // historic house
+  "Q879050", // manor house
+  "Q11303", // skyscraper
+  "Q16917", // hospital
+  "Q16560", // palace
+  "Q23413", // castle
+  "Q751876", // château
+  "Q1785071", // fortress
+  "Q57821", // fortification
+  "Q91122", // bunker
+  "Q389959", // air-raid shelter
+  "Q40357", // prison
+  "Q44613", // monastery
+  "Q16970", // church building
+  "Q160742", // abbey
+  "Q108325", // chapel
+  "Q44539", // temple
+  "Q1370598", // place of worship
+  "Q24398318", // religious building
+  "Q4989906", // monument
+  "Q5003624", // memorial
+  "Q39614", // cemetery
+  "Q27686", // hotel
+  "Q33506", // museum
+])
+
 async function fetchPlaces(qids: string[]): Promise<Map<string, Place>> {
   const ents = await fetchEntities(qids)
   const staged = new Map<
     string,
-    { place: Place; countryQid?: string; regionQid?: string }
+    { place: Place; countryQid?: string; regionQid?: string; structure: boolean }
   >()
   const regionQids = new Set<string>()
   const countryQids = new Set<string>()
@@ -282,6 +300,9 @@ async function fetchPlaces(qids: string[]): Promise<Map<string, Place>> {
     if (!coord || coord.globe !== "http://www.wikidata.org/entity/Q2") continue
     const countryQid = mainValues(e.claims ?? {}, "P17")[0]?.id
     const regionQid = mainValues(e.claims ?? {}, "P131")[0]?.id
+    const structure = mainValues(e.claims ?? {}, "P31").some(
+      (v: any) => v?.id && STRUCTURE_CLASSES.has(v.id)
+    )
     if (countryQid) countryQids.add(countryQid)
     if (regionQid) regionQids.add(regionQid)
     staged.set(qid, {
@@ -292,6 +313,7 @@ async function fetchPlaces(qids: string[]): Promise<Map<string, Place>> {
       },
       countryQid,
       regionQid,
+      structure,
     })
   }
 
@@ -307,7 +329,7 @@ async function fetchPlaces(qids: string[]): Promise<Map<string, Place>> {
   const labels = await fetchLabelMap([...countryQids, ...parentQids])
 
   const out = new Map<string, Place>()
-  for (const [qid, { place, countryQid, regionQid }] of staged) {
+  for (const [qid, { place, countryQid, regionQid, structure }] of staged) {
     const country = countryQid ? labels.get(countryQid) : undefined
     let regionLabel = regionQid ? region.get(regionQid)?.label : undefined
     // Promote a US-style county to its state (parent admin).
@@ -319,6 +341,12 @@ async function fetchPlaces(qids: string[]): Promise<Map<string, Place>> {
       const parentQid = region.get(regionQid!)?.parentQid
       const state = parentQid ? labels.get(parentQid) : undefined
       if (state) regionLabel = state
+    }
+    // A building/structure: drop it in favour of the town/area it sits in. The
+    // coordinates stay (still inside that town), only the label changes.
+    if (structure && regionLabel) {
+      out.set(qid, { ...place, name: regionLabel, region: undefined, country })
+      continue
     }
     if (regionLabel && (regionLabel === place.name || regionLabel === country)) {
       regionLabel = undefined
@@ -370,6 +398,11 @@ const CATEGORY_RULES: Record<string, string[]> = {
     "cricketer", "racing driver", "swimmer", "sportsperson", "baseball player",
     "golfer", "wrestler", "cyclist", "ice hockey player", "gymnast",
     "association football player", "american football player",
+  ],
+  "Explorers & Pioneers": [
+    "explorer", "navigator", "seafarer", "conquistador", "colonizer",
+    "mountaineer", "aviator", "astronaut", "cosmonaut", "adventurer",
+    "pioneer", "cartographer", "circumnavigator",
   ],
   "Faith & Religion": [
     "theologian", "religious figure", "saint", "pope", "prophet", "priest",
@@ -510,8 +543,8 @@ async function main() {
   const occLabels = await fetchOccupationLabels([...occQids])
   const causeLabels = await fetchOccupationLabels([...causeQids]) // lowercased
 
-  // Require usable coordinates for BOTH birth and death (dead only), born in
-  // the modern era (>= 1800), and from the Western world.
+  // Require usable coordinates for BOTH birth and death (dead only). No era or
+  // geography filter — the roster is global and spans all of history.
   const final: any[] = []
   for (const p of people) {
     if (final.length >= TARGET) break
@@ -521,8 +554,6 @@ async function main() {
     const dob = parseTime(p.dob)
     const dod = p.dod ? parseTime(p.dod) : null
     if (!dob || !dod) continue
-    if (dob.year < MIN_BIRTH_YEAR) continue
-    if (!isWestern(birth.country)) continue
     const occ = p.occQids.map((q: string) => occLabels.get(q) ?? "").filter(Boolean)
     const causes = p.causeQids
       .map((q: string) => causeLabels.get(q) ?? "")
@@ -534,8 +565,9 @@ async function main() {
       image: p.imageFile,
       dob,
       dod,
-      birth,
-      death,
+      // Strip building/house names that would give the person away.
+      birth: scrubPlace(birth, p.name),
+      death: scrubPlace(death, p.name),
       alive: false,
       categories: categoriesFor(occ, dob.year),
       weight: shockWeight(p.mannerQids, causes),

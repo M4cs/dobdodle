@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router"
 import { ArrowRight, RotateCcw } from "lucide-react"
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
+import { DifficultyBar } from "./difficulty-bar"
 import { GameShell } from "./game-shell"
 import { PuzzleBoard } from "./puzzle-board"
 import { ShareButton } from "./share-button"
@@ -33,6 +34,10 @@ export function UnlimitedScreen({ data }: { data: GameData }) {
       title="Unlimited"
       subtitle="5 people · 5 guesses each · fresh set anytime"
     >
+      <div className="mb-4 flex justify-center">
+        <DifficultyBar active={data.difficulty} />
+      </div>
+
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           {puzzles.map((p, i) => (
@@ -97,7 +102,9 @@ export function UnlimitedScreen({ data }: { data: GameData }) {
           </p>
           <div className="mt-4 flex justify-center">
             <ShareButton
-              getText={() => shareUnlimited(puzzles, data.category, data.seed)}
+              getText={() =>
+                shareUnlimited(puzzles, data.category, data.seed, data.difficulty)
+              }
             />
           </div>
         </div>

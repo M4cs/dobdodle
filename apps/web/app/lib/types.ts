@@ -34,6 +34,9 @@ export interface Person {
 
 export type GameMode = "daily" | "unlimited" | "rapid"
 
+/** Candidate-pool size by fame: easy = household names, hard = the full pool. */
+export type Difficulty = "easy" | "medium" | "hard"
+
 /** Anonymous daily-result standing shown after a daily finishes. */
 export interface DailyStats {
   beatPct: number // % of today's players you finished ahead of

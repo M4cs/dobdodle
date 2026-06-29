@@ -1,7 +1,19 @@
-import type { PublicPuzzle } from "./types"
+import type { Difficulty, PublicPuzzle } from "./types"
 
 // Wordle/Worldle-style shareable results. Spoiler-free: no names or places, so
 // the link can be shared without giving the answer away.
+
+// Difficulty only needs to ride along in the URL when it's not the default, so
+// the recipient's seeded game resolves to the same people.
+function withDifficulty(params: URLSearchParams, difficulty?: Difficulty): void {
+  if (difficulty && difficulty !== "medium") params.set("diff", difficulty)
+}
+
+const DIFF_LABEL: Record<Difficulty, string> = {
+  easy: "Easy",
+  medium: "Medium",
+  hard: "Hard",
+}
 
 const CAT_EMOJI: Record<string, string> = {
   All: "🌍",
@@ -65,26 +77,30 @@ export function shareDaily(
 export function shareUnlimited(
   puzzles: PublicPuzzle[],
   category: string,
-  seed: string | null
+  seed: string | null,
+  difficulty: Difficulty = "medium"
 ): string {
   const solved = puzzles.filter((p) => p.solved).length
   const line = puzzles.map((p) => (p.solved ? "🟩" : "⬛")).join("")
   const params = new URLSearchParams()
   if (seed) params.set("seed", seed)
   if (category !== "All") params.set("cat", category)
+  withDifficulty(params, difficulty)
   const link = `${origin()}/unlimited${params.toString() ? `?${params}` : ""}`
-  return `dobdodle ${catLabel(category)} · Unlimited\n${line}  ${solved}/${puzzles.length}\n\n${link}`
+  return `dobdodle ${catLabel(category)} · Unlimited · ${DIFF_LABEL[difficulty]}\n${line}  ${solved}/${puzzles.length}\n\n${link}`
 }
 
 export function shareRapid(
   solved: number,
   answered: number,
   category: string,
-  seed: string | null
+  seed: string | null,
+  difficulty: Difficulty = "medium"
 ): string {
   const params = new URLSearchParams()
   if (seed) params.set("seed", seed)
   if (category !== "All") params.set("cat", category)
+  withDifficulty(params, difficulty)
   const link = `${origin()}/rapid${params.toString() ? `?${params}` : ""}`
-  return `dobdodle ${catLabel(category)} · Rapid ⚡\n🎯 ${solved} correct in 60s (${answered} guessed)\n\n${link}`
+  return `dobdodle ${catLabel(category)} · Rapid ⚡ · ${DIFF_LABEL[difficulty]}\n🎯 ${solved} correct in 60s (${answered} guessed)\n\n${link}`
 }

@@ -14,6 +14,7 @@ import {
   pool,
 } from "./dataset.server"
 import type {
+  Difficulty,
   Direction,
   GameMode,
   GuessFeedback,
@@ -47,6 +48,23 @@ export const MODES: GameMode[] = ["daily", "unlimited", "rapid"]
 export function isMode(m: string): m is GameMode {
   return (MODES as string[]).includes(m)
 }
+
+export const DIFFICULTIES: Difficulty[] = ["easy", "medium", "hard"]
+export const DEFAULT_DIFFICULTY: Difficulty = "medium"
+export function isDifficulty(d: string): d is Difficulty {
+  return (DIFFICULTIES as string[]).includes(d)
+}
+export function normalizeDifficulty(d: string | null | undefined): Difficulty {
+  return d && isDifficulty(d) ? d : DEFAULT_DIFFICULTY
+}
+// Fraction of a (fame-ordered) category pool each difficulty draws from. Hard
+// uses everyone — including obscure names — with no bias toward fame.
+const DIFF_FRACTION: Record<Difficulty, number> = {
+  easy: 0.22,
+  medium: 0.55,
+  hard: 1,
+}
+const DIFF_MIN_POOL = 25 // never shrink a category below this many candidates
 
 // ---- deterministic, secret-keyed selection ----------------------------------
 function hashInt(s: string): number {
@@ -96,21 +114,25 @@ function weightedPick(people: Person[], seed: string): Person {
   return people[people.length - 1]
 }
 
-function resolveAnswer(
-  mode: GameMode,
-  key: string,
-  category: string,
-  slot: number
-): Person {
-  if (mode === "daily") {
-    // Daily draws from the curated pool, weighted toward controversial /
-    // newsworthy deaths so they surface more often.
-    return weightedPick(dailyPool(category), `daily|${key}|${category}|${slot}`)
-  }
-  // Other modes use uniform selection over the full category pool for variety.
+// The candidate pool for a difficulty: the most-famous fraction of the (already
+// fame-ordered) category pool. Hard returns everyone.
+function difficultyPool(category: string, diff: Difficulty): Person[] {
   const p = pool(category)
-  const gameId = `${mode}|${key}|${category}`
-  return p[sequence(gameId, p.length, slot + 1)[slot]]
+  if (diff === "hard") return p
+  const n = Math.min(p.length, Math.max(DIFF_MIN_POOL, Math.ceil(p.length * DIFF_FRACTION[diff])))
+  return p.slice(0, n)
+}
+
+function resolveAnswer(t: TokenData): Person {
+  if (t.mode === "daily") {
+    // Daily draws from the curated pool, weighted toward controversial /
+    // newsworthy deaths so they surface more often. Difficulty does not apply.
+    return weightedPick(dailyPool(t.category), `daily|${t.key}|${t.category}|${t.slot}`)
+  }
+  // Other modes use uniform selection over the difficulty-scoped pool.
+  const p = difficultyPool(t.category, t.diff)
+  const gameId = gameIdOf(t)
+  return p[sequence(gameId, p.length, t.slot + 1)[t.slot]]
 }
 
 // ---- tokens (opaque handle for a single puzzle) -----------------------------
@@ -118,6 +140,7 @@ interface TokenData {
   mode: GameMode
   key: string
   category: string
+  diff: Difficulty
   slot: number
 }
 const b64url = {
@@ -125,22 +148,22 @@ const b64url = {
   decode: (s: string) => Buffer.from(s, "base64url").toString("utf8"),
 }
 export function encodeToken(t: TokenData): string {
-  return b64url.encode(`${t.mode}␟${t.key}␟${t.category}␟${t.slot}`)
+  return b64url.encode(`${t.mode}␟${t.key}␟${t.category}␟${t.diff}␟${t.slot}`)
 }
 export function decodeToken(token: string): TokenData | null {
   try {
-    const [mode, key, category, slot] = b64url.decode(token).split("␟")
-    if (!isMode(mode) || !isValidCategory(category)) return null
+    const [mode, key, category, diff, slot] = b64url.decode(token).split("␟")
+    if (!isMode(mode) || !isValidCategory(category) || !isDifficulty(diff)) return null
     const slotN = Number(slot)
     if (!Number.isInteger(slotN) || slotN < 0 || slotN >= SLOTS[mode]) return null
-    return { mode, key, category, slot: slotN }
+    return { mode, key, category, diff, slot: slotN }
   } catch {
     return null
   }
 }
 
 export function gameIdOf(t: TokenData): string {
-  return `${t.mode}|${t.key}|${t.category}`
+  return `${t.mode}|${t.key}|${t.category}|${t.diff}`
 }
 
 // ---- keys -------------------------------------------------------------------
@@ -250,7 +273,7 @@ export function buildPuzzle(
   guessedIds: string[],
   forfeited = false
 ): PublicPuzzle {
-  const answer = resolveAnswer(t.mode, t.key, t.category, t.slot)
+  const answer = resolveAnswer(t)
   const max = MAX_GUESSES[t.mode]
   const guesses = guessedIds
     .map((id) => BY_ID.get(id))

@@ -4,9 +4,11 @@ import {
   buildPuzzle,
   dailyKey,
   decodeToken,
+  DEFAULT_DIFFICULTY,
   gameIdOf,
   newSeed,
   normalizeCategory,
+  normalizeDifficulty,
   SLOTS,
   applyGuess,
 } from "./game.server"
@@ -19,12 +21,13 @@ import {
   writeGuesses,
 } from "./session.server"
 import { dailyPercentile, recordDailyScore, scoreFor } from "./db.server"
-import type { DailyStats, GameMode, NameEntry, PublicPuzzle } from "./types"
+import type { DailyStats, Difficulty, GameMode, NameEntry, PublicPuzzle } from "./types"
 
 export interface GameData {
   mode: GameMode
   category: string
   categories: string[]
+  difficulty: Difficulty
   key: string
   seed: string | null
   puzzles: PublicPuzzle[]
@@ -62,6 +65,11 @@ export async function loadGame(
 ): Promise<GameData> {
   const url = new URL(request.url)
   const category = normalizeCategory(url.searchParams.get("cat"))
+  // Difficulty applies to unlimited/rapid only; the daily is the same for all.
+  const difficulty =
+    mode === "daily"
+      ? DEFAULT_DIFFICULTY
+      : normalizeDifficulty(url.searchParams.get("diff"))
 
   let key: string
   let seed: string | null = null
@@ -73,6 +81,9 @@ export async function loadGame(
       seed = newSeed()
       const next = new URLSearchParams({ seed })
       if (category !== ALL_CATEGORY) next.set("cat", category)
+      // Preserve difficulty across the seed-minting redirect, else switching
+      // difficulty silently reverts to the default.
+      if (difficulty !== DEFAULT_DIFFICULTY) next.set("diff", difficulty)
       throw redirect(`?${next.toString()}`)
     }
     key = seed
@@ -82,7 +93,7 @@ export async function loadGame(
   const count = SLOT_COUNT[mode]
   const puzzles: PublicPuzzle[] = []
   for (let slot = 0; slot < count && slot < SLOTS[mode]; slot++) {
-    const t = { mode, key, category, slot }
+    const t = { mode, key, category, diff: difficulty, slot }
     const gameId = gameIdOf(t)
     puzzles.push(
       buildPuzzle(t, readGuesses(session, gameId, slot), readForfeit(session, gameId, slot))
@@ -98,6 +109,7 @@ export async function loadGame(
     mode,
     category,
     categories: [ALL_CATEGORY, ...CATEGORIES],
+    difficulty,
     key,
     seed,
     puzzles,

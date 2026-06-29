@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router"
 import { Timer, Trophy, Zap } from "lucide-react"
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
+import { DifficultyBar } from "./difficulty-bar"
 import { GameShell } from "./game-shell"
 import { PuzzleBoard } from "./puzzle-board"
 import { ShareButton } from "./share-button"
@@ -81,6 +82,7 @@ export function RapidScreen({ data }: { data: GameData }) {
               as many as you can.
             </p>
           </div>
+          <DifficultyBar active={data.difficulty} />
           <Button size="lg" onClick={start}>
             <Timer /> Start the clock
           </Button>
@@ -120,7 +122,9 @@ export function RapidScreen({ data }: { data: GameData }) {
           </div>
           <div className="flex flex-wrap justify-center gap-2">
             <ShareButton
-              getText={() => shareRapid(solved, answered, data.category, data.seed)}
+              getText={() =>
+                shareRapid(solved, answered, data.category, data.seed, data.difficulty)
+              }
             />
             <Button size="lg" variant="outline" onClick={playAgain}>
               <Zap /> Play again
